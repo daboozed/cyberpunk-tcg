@@ -49,8 +49,8 @@ const rollingRef = useRef(false);
     title={die.label}
     className="flex items-center justify-center border border-white bg-black text-white"
     style={{
-      width: 60,
-      height: 60,
+      width: 45,
+      height: 45,
       fontSize: 24,
       opacity: selectable && !disabled ? 1 : 0.4,
       cursor: selectable && !disabled ? "pointer" : "not-allowed",
