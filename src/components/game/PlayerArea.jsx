@@ -150,7 +150,7 @@ function TrashZone({ trash = [], borderColor }) {
 
   return (
     <div
-      className="flex flex-wrap justify-center gap-2 p-2 rounded-lg"
+      className="w-full max-w-[700px] flex flex-wrap justify-start gap-2 p-2 rounded-lg"
       style={{ border: `1px dashed ${borderColor}`, minHeight: "100px" }}
     >
       {(field || []).map((unit) => {

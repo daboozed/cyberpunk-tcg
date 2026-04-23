@@ -1,0 +1,1 @@
+export default function Leaderboard(){return <div className='panel'>Live Leaderboard • Top 100</div>}

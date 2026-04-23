@@ -73,27 +73,24 @@ export default function HandArea({
   PLAY
 </button>
 
-    {/* SELL */}
-    <button
-  disabled={!canSell || phase !== "play"}
-  onClick={(e) => {
-    e.stopPropagation();
-    if (!canSell) return;
-    onSellCard?.(i);
-  }}
-  className={cn(
-    "flex-1 text-xs font-bold py-1 transition-all duration-150 border",
-
-    // ✅ SELLABLE
-    canSell && phase === "play"
-      ? "border-yellow-400 bg-gradient-to-b from-yellow-500 to-yellow-700 text-black shadow-[0_0_6px_rgba(255,200,0,0.6)] hover:scale-105"
-
-      // ❌ NOT SELLABLE
-      : "border-gray-600 bg-gray-800 text-gray-500 cursor-not-allowed opacity-50 shadow-none"
-  )}
->
-  SELL
-</button>
+    {/* SELL - only for sellable cards */}
+{canSell && (
+  <button
+    disabled={phase !== "play"}
+    onClick={(e) => {
+      e.stopPropagation();
+      onSellCard?.(i);
+    }}
+    className={cn(
+      "flex-1 text-xs font-bold py-1 transition-all duration-150 border",
+      phase === "play"
+        ? "border-yellow-400 bg-gradient-to-b from-yellow-500 to-yellow-700 text-black shadow-[0_0_6px_rgba(255,200,0,0.6)] hover:scale-105"
+        : "border-gray-600 bg-gray-800 text-gray-500 cursor-not-allowed opacity-50 shadow-none"
+    )}
+  >
+    SELL
+  </button>
+)}
 
   </div>
 

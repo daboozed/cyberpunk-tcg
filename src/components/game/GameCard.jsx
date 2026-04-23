@@ -49,7 +49,7 @@ export default function GameCard({
         )}
         style={{ borderStyle: 'dashed' }}
       >
-        <img src={CARD_BACK} className="w-full h-full object-cover" />
+        <img src={CARD_BACK} className="w-full h-full object-contain bg-black" />
         {spent && (
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="font-bold text-red-500 opacity-80">SPENT</span>
@@ -67,7 +67,7 @@ export default function GameCard({
         onMouseLeave={() => setHovered(false)}
         onMouseMove={e => setMousePos({ x: e.clientX, y: e.clientY })}
         className={cn(
-          "relative rounded-lg border-2 cursor-pointer transition-all duration-200 overflow-visible",
+           "relative rounded-lg border-2 cursor-pointer transition-all duration-200 overflow-hidden bg-black",
           style.border,
           style.bg,
           selected && "ring-2 ring-primary shadow-lg shadow-primary/30 scale-105",
@@ -85,10 +85,10 @@ export default function GameCard({
 
         {imageUrl && (
           <img
-            src={imageUrl}
-            alt={card.name}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+  src={imageUrl}
+  alt={card.name}
+  className="absolute inset-0 w-full h-full object-contain"
+/>
         )}
 
         {!hideCost && card.cost !== undefined && (

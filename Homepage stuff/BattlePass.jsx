@@ -1,0 +1,1 @@
+export default function BattlePass(){return <div className='panel'>Battle Pass Rewards Track</div>}

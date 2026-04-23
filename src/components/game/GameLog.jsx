@@ -4,10 +4,22 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function GameLog({ logs, alwaysExpanded = false }) {
   const endRef = useRef(null);
+const containerRef = useRef(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs.length]);
+  const box = containerRef.current;
+  if (!box) return;
+
+  const nearBottom =
+    box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+
+  if (nearBottom) {
+    endRef.current?.scrollIntoView({
+      behavior: "auto",
+      block: "nearest"
+    });
+  }
+}, [logs.length]);
 
   const getTurnColor = (msg) => {
     if (msg.startsWith('--- Turn') && msg.includes("Your Turn")) return 'text-cyan-400 font-bold mt-1';
@@ -27,14 +39,14 @@ export default function GameLog({ logs, alwaysExpanded = false }) {
         <p className="text-[10px] font-orbitron font-bold uppercase tracking-widest" style={{ color: '#00ffff', textShadow: '0 0 8px #00ffff' }}>Combat Log</p>
       </div>
       <ScrollArea className="flex-1 p-2 min-h-0">
-        <div className="space-y-0.5">
+  <div ref={containerRef} className="space-y-0.5">
           {logs.map((log, i) => (
             <p key={i} className={cn("text-[11px] font-mono leading-snug", getTurnColor(log.msg))}>
               {log.msg}
             </p>
           ))}
           <div ref={endRef} />
-        </div>
+        </div>  
       </ScrollArea>
     </div>
   );
