@@ -493,43 +493,48 @@ useEffect(() => {
   }, [gs, gearTarget, isMultiplayer, mpSave]);
 
   const handleOpponentFieldClick = useCallback((unit) => {
-    if (gs.phase === PHASES.ATTACK && selectedAttacker && unit.spent) {
-      const newGs = attackUnit(gs, selectedAttacker, unit.uid);
+
+  // 🔥 CORPORATE SURVEILLANCE / TARGETED PROGRAMS
+  if (pendingProgram) {
+    const card = pendingProgram.card;
+
+    // p7 = Corporate Surveillance
+    if (
+      card?.id === "p7" &&
+      !unit.spent &&
+      (unit.cost || 0) <= 3
+    ) {
+      const newGs = resolvePendingEffect(gs, unit.uid);
+
       setGs(newGs);
+      setPendingProgram(null);
       setSelectedAttacker(null);
+
       if (isMultiplayer) mpSave(newGs);
-    } else {
-      setDetailCard(unit);
+      return;
     }
-  }, [gs, selectedAttacker, isMultiplayer, mpSave]);
+  }
 
-const handleAttackRival = useCallback(() => {
-  if (gs.phase !== PHASES.ATTACK || !selectedAttacker) return;
+  // NORMAL ATTACK FLOW
+  if (gs.phase === PHASES.ATTACK && selectedAttacker && unit.spent) {
+    const newGs = attackUnit(gs, selectedAttacker, unit.uid);
 
-  const newGs = attackRival(gs, selectedAttacker);
+    setGs(newGs);
+    setSelectedAttacker(null);
 
-  setGs(newGs);
-  setSelectedAttacker(null);
+    if (isMultiplayer) mpSave(newGs);
 
-  if (isMultiplayer) mpSave(newGs);
+  } else {
+    setDetailCard(unit);
+  }
 
-}, [gs, selectedAttacker, isMultiplayer, mpSave]);
-
-const handleAttackGig = useCallback((gigIndex) => {
-  if (gs.phase !== PHASES.ATTACK) return;
-  if (!selectedAttacker) return;
-
-  const targetGig = gs.opponent.gigDice[gigIndex];
-  if (!targetGig) return;
-
-  const newGs = resolveGigSteal(gs, selectedAttacker, targetGig.id);
-
-  setGs(newGs);
-  setSelectedAttacker(null);
-
-  if (isMultiplayer) mpSave(newGs);
-
-}, [gs, selectedAttacker, isMultiplayer, mpSave]);
+}, [
+  gs,
+  pendingProgram,
+  selectedAttacker,
+  isMultiplayer,
+  mpSave
+]);
 
 
   const handleStartAttack = useCallback(() => {
