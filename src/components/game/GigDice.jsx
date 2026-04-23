@@ -49,7 +49,7 @@ const rollingRef = useRef(false);
     title={die.label}
     className="flex items-center justify-center border border-white bg-black text-white"
     style={{
-      width: 60,
+      width: 30,
       height: 60,
       fontSize: 24,
       opacity: selectable && !disabled ? 1 : 0.4,
