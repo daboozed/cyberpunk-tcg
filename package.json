@@ -10,7 +10,7 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview"
-  }, 
+  },
   "dependencies": {
     "@base44/sdk": "^0.8.26",
     "@base44/vite-plugin": "^1.0.10",
