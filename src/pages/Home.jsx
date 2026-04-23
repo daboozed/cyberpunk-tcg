@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Swords, Layers, FolderOpen, Cpu, Crown, ChevronRight, Coins, Zap, Shield } from "lucide-react";
 import LoadDeckModal from "@/components/game/LoadDeckModal";
+import heroBg from "@/assets/nightcity-rain.png";
+
 
 const SECTIONS = [
   { title: 'WIN CONDITION', icon: Crown, color: 'text-amber-400', border: 'border-amber-500/30', content: [
