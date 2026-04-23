@@ -432,7 +432,11 @@ useEffect(() => {
   if (card.type === 'program' && card.id === 'p7') {
     const targets = gs.opponent.field.filter(u => !u.spent && (u.cost || 0) <= 3);
     if (targets.length === 0) return;
-    setPendingProgram({ card, cardIndex: index });
+    setPendingProgram({
+  card,
+  cardIndex: index,
+  targetType: "enemyUnit"
+});
     return;
   }
 
