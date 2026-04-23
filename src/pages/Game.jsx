@@ -413,7 +413,7 @@ useEffect(() => {
     return;
   }
 
-  if (card.type === 'program' && effect?.type === 'BOOST_GIG') {
+  if (card.type === 'program' && card.id === 'p3') {
     if (gs.player.gigDice.length === 0) return;
     setPendingProgram({ card, cardIndex: index, effect: 'p3' });
     return;
