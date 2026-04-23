@@ -18,7 +18,7 @@
   function GigPlaceholder({ sides, borderColor }) {
     const style = GIG_STYLES[sides];
     return (
-      <div style={{ width: 18, height: 48, opacity: 0.3 }}>
+      <div style={{ width: 48, height: 48, opacity: 0.3 }}>
         <div style={{
           width: "100%", height: "100%",
           clipPath: style.clipPath,
