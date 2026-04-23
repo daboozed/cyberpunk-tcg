@@ -1022,6 +1022,7 @@ return (
   mousePos={mousePos}
   isMultiplayer={isMultiplayer}
   mpSave={mpSave}
+  setactualIndex={setactualIndex}
 />
 
     </div>
