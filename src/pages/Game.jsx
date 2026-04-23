@@ -540,6 +540,18 @@ useEffect(() => {
   mpSave
 ]);
 
+const handleAttackGig = useCallback(() => {
+  if (gs.phase !== PHASES.ATTACK) return;
+  if (!selectedAttacker) return;
+
+  const newGs = attackRival(gs, selectedAttacker);
+
+  setGs(newGs);
+  setSelectedAttacker(null);
+
+  if (isMultiplayer) mpSave(newGs);
+
+}, [gs, selectedAttacker, isMultiplayer, mpSave]);
 
   const handleStartAttack = useCallback(() => {
     const newGs = startAttackPhase(gs);
