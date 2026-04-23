@@ -626,10 +626,16 @@ setGs(newGs);
 }, []);
 
   const handleGigSteal = useCallback((gigId) => {
-    const newGs = resolveGigSteal(gs, gigId);
-    setGs(newGs);
-    if (isMultiplayer) mpSave(newGs);
-  }, [gs, isMultiplayer, mpSave]);
+  if (!gs.pendingGigSteal) return;
+
+  const attackerUid = gs.pendingGigSteal.attackerUid;
+
+  const newGs = resolveGigSteal(gs, attackerUid, gigId);
+
+  setGs(newGs);
+
+  if (isMultiplayer) mpSave(newGs);
+}, [gs, isMultiplayer, mpSave]);
 
   const handleGigBoost = useCallback((gigId) => {
     const newGs = resolveGigBoost(gs, gigId);
