@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Zap, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GigDice from "./GigDice";
-import { getUnitPower } from "@/lib/gameEngine";
+import { getUnitPower } from "@/lib/game/gameEngine";
 
 export default function AdjustGigModal({ rivalGigs, playerGigs, onAdjust, onClose }) {
   const [selectedGig, setSelectedGig] = useState(0);
