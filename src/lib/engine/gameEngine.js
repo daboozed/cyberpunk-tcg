@@ -925,8 +925,7 @@ state.pendingLegendPeek = { owner };
 log(
   state,
   "     Kiroshi Optics activates — peek at a friendly face-down Legend"
-);
+       );
     }
-
   }
 }
