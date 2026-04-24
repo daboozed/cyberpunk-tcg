@@ -1,4 +1,11 @@
+export function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
 
-export function shuffle(arr){...}
-export function clone(o){...}
-export function uid(){...}
+export function clone(o) {
+  return JSON.parse(JSON.stringify(o));
+}
+
+export function uid() {
+  return Math.random().toString(36).slice(2);
+}
