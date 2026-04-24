@@ -6,14 +6,7 @@ import {
   getUnitPower,
   calcPower
 } from "./helpers";
-
-import {
-  resolveGigSteal,
-  attackRival,
-  attackUnit
-} from "./combatEngine";
    
-
 import { ProgramResolver } from "../programResolver";
 export { resolveGigBoost } from "../effectResolver";
 import { resolveLegendFlip } from "../legendFlipResolver";
