@@ -7,7 +7,6 @@ import {
   calcPower
 } from "./helpers";
 
-import { aiTurn } from "./aiEngine";
 import {
   resolveGigSteal,
   attackRival,
