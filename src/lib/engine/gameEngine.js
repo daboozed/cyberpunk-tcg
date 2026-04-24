@@ -15,9 +15,9 @@ import {
 } from "./combatEngine";
    
 
-import { ProgramResolver } from "./programResolver";
-export { resolveGigBoost } from "./effectResolver";
-import { resolveLegendFlip } from "./legendFlipResolver";
+import { ProgramResolver } from "../programResolver";
+export { resolveGigBoost } from "../effectResolver";
+import { resolveLegendFlip } from "../legendFlipResolver";
   // =========================
   // PHASES
   // =========================
