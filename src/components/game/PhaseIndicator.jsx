@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { PHASES } from "@/lib/engine/helpers";
+import { PHASES } from "@/lib/engine/gameEngine";
  
 const PHASE_LABELS = {
   [PHASES.SETUP]: 'SETUP',
