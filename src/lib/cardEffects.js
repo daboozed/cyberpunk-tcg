@@ -1,6 +1,6 @@
 // cardEffects.js — Card effect resolution logic
 
-import { getAvailableEddies, getAvailableLegendEddies, spendEddies, getUnitPower } from "./gameEngine";
+import { getAvailableEddies, getAvailableLegendEddies, spendEddies, getUnitPower } from "./engine/helpers";
 
 function log(s, msg) {
   s.gameLog.push({ msg, time: Date.now() });

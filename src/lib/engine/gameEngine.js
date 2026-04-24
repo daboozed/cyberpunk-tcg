@@ -1,6 +1,15 @@
-import { ProgramResolver } from "./programResolver";
-export { resolveGigBoost } from "./effectResolver";
-import { resolveLegendFlip } from "./legendFlipResolver";
+import { clone, uid, shuffle } from "./utils";
+import {
+  getAvailableEddies,
+  getAvailableLegendEddies,
+  spendEddies,
+  getUnitPower,
+  calcPower
+} from "./helpers";
+   
+import { ProgramResolver } from "../programResolver";
+export { resolveGigBoost } from "../effectResolver";
+import { resolveLegendFlip } from "../legendFlipResolver";
   // =========================
   // PHASES
   // =========================
@@ -99,7 +108,7 @@ import { resolveLegendFlip } from "./legendFlipResolver";
       s.player.hand=[];
       for(let i=0;i<6;i++){
         if(s.player.deck.length) s.player.hand.push(s.player.deck.pop());
-      }
+      } 
       log(s,"Player 1 mulligans");
     }else{
       log(s,"Player 1 keeps their hand");
@@ -705,10 +714,6 @@ s.turn++;
 return readyPhase(s);
 }
 
-  function calcPower(unit){
-    return (unit.power||0)+(unit.powerBonus||0)+((unit.gear||[]).reduce((sum,g)=>sum+(g.powerBonus||0),0));
-  }
-
   // =========================
   // REQUIRED EXPORTS
   // =========================
@@ -825,30 +830,52 @@ const defPow = (defender.power || 0) + (defender.powerBonus || 0) +
 export function resolveBlockerDecision(state, blockerUid = null) {
   const s = clone(state);
 
-  if (!s.pendingAttackers || !s.pendingAttackers.length) return s;
+  if (!s.pendingBlock) return s;
 
-  const attacker = s.pendingAttackers[0];
+  const {
+    attacker,
+    targetType,
+    targetUid
+  } = s.pendingBlock;
+
   const blocker = blockerUid
     ? s.player.field.find(u => u.uid === blockerUid)
     : null;
 
-  // No block chosen = direct hit
+  // NO BLOCK CHOSEN
   if (!blocker) {
-    if (s.player.gigDice.length > 0) {
-      const stolen = s.player.gigDice.shift();
-      s.opponent.gigDice.push({ ...stolen, id: uid() });
+    if (targetType === "gig") {
+      if (s.player.gigDice.length > 0) {
+        const best = s.player.gigDice.reduce((best, g, i) =>
+          g.value > s.player.gigDice[best].value ? i : best, 0
+        );
 
-      log(s, `     ${attacker.name} attacks directly and steals Gig ${stolen.value}`);
+        const [stolen] = s.player.gigDice.splice(best, 1);
+        s.opponent.gigDice.push({ ...stolen, id: uid() });
+
+        log(s, `${attacker.name} steals Gig ${stolen.value}`);
+      }
     }
 
-    s.pendingAttackers.shift();
+    if (targetType === "unit") {
+      const idx = s.player.field.findIndex(u => u.uid === targetUid);
+      if (idx >= 0) {
+        const [dead] = s.player.field.splice(idx, 1);
+        s.player.trash.push(dead);
+
+        log(s, `${attacker.name} defeats ${dead.name}`);
+      }
+    }
+
+    s.pendingBlock = null;
     return s;
   }
 
+  // BLOCK COMBAT
+  blocker.spent = true;
+
   const atkPow = calcPower(attacker);
   const defPow = calcPower(blocker);
-
-  blocker.spent = true;
 
   if (atkPow >= defPow) {
     const idx = s.player.field.findIndex(u => u.uid === blocker.uid);
@@ -857,7 +884,7 @@ export function resolveBlockerDecision(state, blockerUid = null) {
       s.player.trash.push(dead);
     }
 
-    log(s, `     ${blocker.name} blocks but is defeated by ${attacker.name}`);
+    log(s, `${blocker.name} blocks but is defeated by ${attacker.name}`);
   } else {
     const idx = s.opponent.field.findIndex(u => u.uid === attacker.uid);
     if (idx >= 0) {
@@ -865,10 +892,10 @@ export function resolveBlockerDecision(state, blockerUid = null) {
       s.opponent.trash.push(dead);
     }
 
-    log(s, `     ${blocker.name} blocks and defeats ${attacker.name}`);
+    log(s, `${blocker.name} blocks and defeats ${attacker.name}`);
   }
 
-  s.pendingAttackers.shift();
+  s.pendingBlock = null;
   return s;
 }
 
@@ -901,36 +928,6 @@ export function resolveBlockerDecision(state, blockerUid = null) {
   // =========================
   // HELPERS
   // =========================
-  export function getAvailableEddies(player){
-    return (player.eddies||[]).filter(e=>!e.spent).length;
-  }
-
-  export function getAvailableLegendEddies(player){
-    return (player.legends||[]).filter(l=>!l.spent&&!l.goSoloActive).length;
-  }
-
-  export function spendEddies(player, amount){
-    let remaining = amount;
-
-    (player.eddies||[]).forEach(e=>{
-      if(!e.spent && remaining>0){
-        e.spent=true;
-        remaining--;
-      }
-    });
-
-    (player.legends||[]).forEach(l=>{
-      if(!l.spent && remaining>0){
-        l.spent=true;
-        remaining--;
-      }
-    });
-  }
-
-  export function getUnitPower(unit){
-    return unit?.power || 0;
-  }
-
 function triggerGearEffects(state, unit, trigger) {
   const gears = unit.gear || [];
 
@@ -950,28 +947,7 @@ state.pendingLegendPeek = { owner };
 log(
   state,
   "     Kiroshi Optics activates — peek at a friendly face-down Legend"
-);
+       );
     }
-
   }
 }
-
-  // =========================
-  // INTERNAL
-  // =========================
-  function shuffle(arr){
-    const a=[...arr];
-    for(let i=a.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1));
-      [a[i],a[j]]=[a[j],a[i]];
-    }
-    return a;
-  }
-
-  function clone(o){
-    return JSON.parse(JSON.stringify(o));
-  }
-
-  function uid(){
-    return Math.random().toString(36).slice(2);
-  }

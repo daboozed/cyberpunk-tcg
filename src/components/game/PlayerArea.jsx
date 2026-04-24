@@ -1,10 +1,11 @@
   import { useState } from "react";
   import UnitWithGear from "./UnitWithGear";
   import GigDice from "./GigDice";
-  import { getAvailableEddies, getAvailableLegendEddies, PHASES } from "@/lib/gameEngine";
+  import { getAvailableEddies, getAvailableLegendEddies } from "@/lib/engine/helpers";
   import { LEGEND_BACK, CARD_BACK } from "@/lib/cardPool";
   import CardHoverPreview from "./CardHoverPreview";
   import { cn } from "@/lib/utils";
+  import { PHASES } from "@/lib/engine/gameEngine";
 
   const GIG_STYLES = {
     20: { clipPath: "polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%)", color: "#ff3366" },

@@ -24,11 +24,13 @@ import {
   playLegendAsSolo,
   resolveGigSteal,
   resolveGigBoost,
-  PHASES,
+  PHASES
+} from "@/lib/engine/gameEngine";
+import {
   getAvailableEddies,
   getAvailableLegendEddies,
-  getUnitPower,
-} from "@/lib/gameEngine";
+  getUnitPower
+} from "@/lib/engine/helpers";
 import { buildCustomDeck, GIG_DICE, CARD_BACK } from "@/lib/cardPool";
 import FloorItModal from "@/components/game/FloorItModal";
 import { ProgramResolver } from "@/lib/programResolver";
