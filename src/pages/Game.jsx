@@ -28,7 +28,7 @@ import {
   getAvailableEddies,
   getAvailableLegendEddies,
   getUnitPower,
-} from "@/lib/gameEngine";
+} from "@/lib/engine/gameEngine";
 import { buildCustomDeck, GIG_DICE, CARD_BACK } from "@/lib/cardPool";
 import FloorItModal from "@/components/game/FloorItModal";
 import { ProgramResolver } from "@/lib/programResolver";
