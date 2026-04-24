@@ -8,7 +8,7 @@ import {
 } from "./helpers";
    
 import { ProgramResolver } from "../programResolver";
-export { resolveGigBoost } from "../effectResolver";
+//export { resolveGigBoost } from "../effectResolver";
 import { resolveLegendFlip } from "../legendFlipResolver";
   // =========================
   // PHASES
