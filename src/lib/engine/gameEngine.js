@@ -830,30 +830,52 @@ const defPow = (defender.power || 0) + (defender.powerBonus || 0) +
 export function resolveBlockerDecision(state, blockerUid = null) {
   const s = clone(state);
 
-  if (!s.pendingAttackers || !s.pendingAttackers.length) return s;
+  if (!s.pendingBlock) return s;
 
-  const attacker = s.pendingAttackers[0];
+  const {
+    attacker,
+    targetType,
+    targetUid
+  } = s.pendingBlock;
+
   const blocker = blockerUid
     ? s.player.field.find(u => u.uid === blockerUid)
     : null;
 
-  // No block chosen = direct hit
+  // NO BLOCK CHOSEN
   if (!blocker) {
-    if (s.player.gigDice.length > 0) {
-      const stolen = s.player.gigDice.shift();
-      s.opponent.gigDice.push({ ...stolen, id: uid() });
+    if (targetType === "gig") {
+      if (s.player.gigDice.length > 0) {
+        const best = s.player.gigDice.reduce((best, g, i) =>
+          g.value > s.player.gigDice[best].value ? i : best, 0
+        );
 
-      log(s, `     ${attacker.name} attacks directly and steals Gig ${stolen.value}`);
+        const [stolen] = s.player.gigDice.splice(best, 1);
+        s.opponent.gigDice.push({ ...stolen, id: uid() });
+
+        log(s, `${attacker.name} steals Gig ${stolen.value}`);
+      }
     }
 
-    s.pendingAttackers.shift();
+    if (targetType === "unit") {
+      const idx = s.player.field.findIndex(u => u.uid === targetUid);
+      if (idx >= 0) {
+        const [dead] = s.player.field.splice(idx, 1);
+        s.player.trash.push(dead);
+
+        log(s, `${attacker.name} defeats ${dead.name}`);
+      }
+    }
+
+    s.pendingBlock = null;
     return s;
   }
 
+  // BLOCK COMBAT
+  blocker.spent = true;
+
   const atkPow = calcPower(attacker);
   const defPow = calcPower(blocker);
-
-  blocker.spent = true;
 
   if (atkPow >= defPow) {
     const idx = s.player.field.findIndex(u => u.uid === blocker.uid);
@@ -862,7 +884,7 @@ export function resolveBlockerDecision(state, blockerUid = null) {
       s.player.trash.push(dead);
     }
 
-    log(s, `     ${blocker.name} blocks but is defeated by ${attacker.name}`);
+    log(s, `${blocker.name} blocks but is defeated by ${attacker.name}`);
   } else {
     const idx = s.opponent.field.findIndex(u => u.uid === attacker.uid);
     if (idx >= 0) {
@@ -870,10 +892,10 @@ export function resolveBlockerDecision(state, blockerUid = null) {
       s.opponent.trash.push(dead);
     }
 
-    log(s, `     ${blocker.name} blocks and defeats ${attacker.name}`);
+    log(s, `${blocker.name} blocks and defeats ${attacker.name}`);
   }
 
-  s.pendingAttackers.shift();
+  s.pendingBlock = null;
   return s;
 }
 
