@@ -1,1 +1,5 @@
 
+resolveGigSteal()
+attackRival()
+attackUnit()
+resolveBlockerDecision()
