@@ -1,4 +1,4 @@
-import { clone, uid } from "./utils";
+import { clone, uid, shuffle } from "./utils";
 import {
   getAvailableEddies,
   getAvailableLegendEddies,
