@@ -2,7 +2,9 @@ import { clone, uid } from "./utils";
 import {
   getAvailableEddies,
   getAvailableLegendEddies,
-  spendEddies
+  spendEddies,
+  getUnitPower,
+  calcPower
 } from "./helpers";
 
 import { aiTurn } from "./aiEngine";
