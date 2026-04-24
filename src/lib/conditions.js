@@ -26,7 +26,7 @@ import {
   getAvailableEddies,
   getAvailableLegendEddies,
   getUnitPower,
-} from "@/lib/gameEngine";
+} from "@/lib/engine/gameEngine";
 import { buildCustomDeck, GIG_DICE } from "@/lib/cardPool";
 import PhaseIndicator from "@/components/game/PhaseIndicator";
 import PlayerArea from "@/components/game/PlayerArea";
