@@ -116,7 +116,7 @@ import { resolveLegendFlip } from "../legendFlipResolver";
       s.player.hand=[];
       for(let i=0;i<6;i++){
         if(s.player.deck.length) s.player.hand.push(s.player.deck.pop());
-      }
+      } 
       log(s,"Player 1 mulligans");
     }else{
       log(s,"Player 1 keeps their hand");
