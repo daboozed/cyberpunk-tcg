@@ -1,7 +1,7 @@
   import { useState } from "react";
   import UnitWithGear from "./UnitWithGear";
   import GigDice from "./GigDice";
-  import { getAvailableEddies, getAvailableLegendEddies, PHASES } from "@/lib/gameEngine";
+  import { getAvailableEddies, getAvailableLegendEddies, PHASES } from "@/lib/game/gameEngine";
   import { LEGEND_BACK, CARD_BACK } from "@/lib/cardPool";
   import CardHoverPreview from "./CardHoverPreview";
   import { cn } from "@/lib/utils";
