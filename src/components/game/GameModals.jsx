@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CARD_BACK } from "@/lib/cardPool";
 import { ProgramResolver } from "@/lib/programResolver";
-import { PHASES, resolvePendingEffect } from "@/lib/game/gameEngine";
+import { PHASES, resolvePendingEffect } from "@/lib/engine/gameEngine";
 
 export default function GameModals(props) {
   const {
