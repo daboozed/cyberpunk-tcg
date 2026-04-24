@@ -205,22 +205,6 @@ html, body, #root {
   background: transparent !important;
 }
 
-.cyberpunk-bg {
-  min-height: 100vh;
-  width: 100%;
-  background:
-    radial-gradient(circle at 50% 40%,
-      rgba(168, 85, 247, 0.35),
-      rgba(59, 130, 246, 0.25) 30%,
-      rgba(10, 15, 35, 0.95) 70%
-    ),
-    linear-gradient(rgba(0,255,255,0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,255,0.08) 1px, transparent 1px),
-    #050816;
-
-  background-size: 100% 100%, 40px 40px, 40px 40px;
-}
-
 .cyberpunk-atmosphere {
   background: radial-gradient(
     circle,
@@ -237,6 +221,6 @@ html, body, #root {
   100% { opacity:.6 }
 }
 
-html {
-  background: #050816 !important;
+html, body, #root {
+  background: transparent !important;
 }

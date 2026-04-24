@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./theme.css";
 import { Link, useNavigate } from "react-router-dom";
 import { Swords, Layers, FolderOpen, Cpu, Crown, ChevronRight, Coins, Zap, Shield } from "lucide-react";
 import LoadDeckModal from "@/components/game/LoadDeckModal";
@@ -68,14 +69,31 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen cyberpunk-bg overflow-x-hidden overflow-y-auto">
-      {/* Background decorations */}
-      <div className="fixed inset-y-0 left-0 w-1/4 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, hsl(225 30% 6%), transparent)' }} />
-      <div className="fixed inset-y-0 right-0 w-1/4 z-10 pointer-events-none" style={{ background: 'linear-gradient(to left, hsl(225 30% 6%), transparent)' }} />
-      <div className="fixed inset-0 opacity-10 pointer-events-none" style={{
-        backgroundImage: 'linear-gradient(hsl(190 100% 50% / 0.1) 1px, transparent 1px), linear-gradient(90deg, hsl(190 100% 50% / 0.1) 1px, transparent 1px)',
-        backgroundSize: '60px 60px'
-      }} />
+    <div
+  className="min-h-screen overflow-x-hidden overflow-y-auto"
+  style={{
+  backgroundImage:
+"linear-gradient(rgba(5,10,20,0.25), rgba(0,0,0,0.35)), url('/background.webp')",
+  backgroundSize: "cover",
+  backgroundPosition: "center top",
+  backgroundRepeat: "no-repeat",
+  backgroundAttachment: "fixed"
+}}
+>
+
+<div className="heroTitle">
+  <h1>BUILD YOUR CREW.</h1>
+  <h2>OWN NIGHT CITY.</h2>
+</div>
+
+<div className="heroLeft">
+  <p className="heroText">
+    A competitive turn-based card game of strategy, risk, and reputation
+    in a ruthless future.
+  </p>
+
+</div>
+
 
       <div className="relative z-20 flex flex-col items-center w-full px-4 py-6 gap-6">
 
@@ -110,51 +128,75 @@ export default function Home() {
 
         {/* Main Panel */}
         <div className="w-full max-w-sm bg-card/80 backdrop-blur-md border border-border/60 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
-          <div className="bg-muted/60 px-6 py-4 border-b border-border/40 text-center">
-            <h2 className="font-orbitron text-base sm:text-lg font-bold text-foreground tracking-wider">ENTER NEON CITY</h2>
-            <p className="font-rajdhani text-xs text-muted-foreground mt-0.5">Neon City Duel — Fan-made Simulator for the Cyberpunk TCG</p>
-          </div>
 
-          <div className="p-5 space-y-3">
-            {deckLoaded && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/30">
-                <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
-                <span className="text-xs font-mono text-green-400 truncate">Deck loaded: {loadedDeckName || 'Custom Deck'}</span>
-              </div>
-            )}
+  <div className="bg-muted/60 px-6 py-4 border-b border-border/40 text-center">
+    <h2 className="font-orbitron text-base sm:text-lg font-bold text-foreground tracking-wider">
+      ENTER NEON CITY
+    </h2>
 
-            <button
-              disabled={!deckLoaded}
-              onClick={startQuickplay}
-              className={`w-full h-11 flex items-center justify-center gap-3 rounded-xl font-rajdhani font-semibold text-sm tracking-wider transition-all duration-200
-              ${deckLoaded
-                ? "bg-muted/30 border border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                : "bg-muted/20 border border-border/30 text-muted-foreground/40 cursor-not-allowed"}`}
-            >
-              <Cpu className="w-4 h-4" />
-              Quickplay - AI
-            </button>
+    <p className="font-rajdhani text-xs text-muted-foreground mt-0.5">
+      Neon City Duel — Fan-made Simulator for the Cyberpunk TCG
+    </p>
+  </div>
 
-            <Link to="/deckbuilder" className="block">
-              <button className="w-full h-11 flex items-center justify-center gap-3 rounded-xl font-rajdhani font-semibold text-sm tracking-wider transition-all duration-200 bg-muted/30 border border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground">
-                <Layers className="w-4 h-4" />
-                Deck Builder
-              </button>
-            </Link>
+  <div className="p-4 space-y-3">
 
-            <button
-              onClick={() => setShowLoadDeck(true)}
-              className="w-full h-11 flex items-center justify-center gap-3 rounded-xl font-rajdhani font-semibold text-sm tracking-wider transition-all duration-200 bg-muted/30 border border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-            >
-              <FolderOpen className="w-4 h-4" />
-              Load Deck
-            </button>
-          </div>
+    <button
+      onClick={() => {
+        window.open(
+          "http://localhost:3001/auth/discord",
+          "discordLogin",
+          "width=520,height=720"
+        );
+      }}
+      className="btn w-full"
+    >
+      Login With Discord
+    </button>
 
-          <p className="py-3 text-[10px] text-muted-foreground/40 font-mono text-center border-t border-border/20">
-            Fan-made simulator · Not affiliated with CD Projekt Red
-          </p>
-        </div>
+    {deckLoaded && (
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/30">
+        <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+        <span className="text-xs font-mono text-green-400 truncate">
+          Deck loaded: {loadedDeckName || "Custom Deck"}
+        </span>
+      </div>
+    )}
+
+    <button
+      disabled={!deckLoaded}
+      onClick={startQuickplay}
+      className={`w-full h-11 flex items-center justify-center gap-3 rounded-xl font-rajdhani font-semibold text-sm tracking-wider transition-all duration-200
+      ${deckLoaded
+        ? "bg-muted/30 border border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+        : "bg-muted/20 border border-border/30 text-muted-foreground/40 cursor-not-allowed"}`}
+    >
+      <Cpu className="w-4 h-4" />
+      Quickplay - AI
+    </button>
+
+    <Link to="/deckbuilder" className="block">
+      <button className="w-full h-11 flex items-center justify-center gap-3 rounded-xl font-rajdhani font-semibold text-sm tracking-wider transition-all duration-200 bg-muted/30 border border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground">
+        <Layers className="w-4 h-4" />
+        Deck Builder
+      </button>
+    </Link>
+
+    <button
+      onClick={() => setShowLoadDeck(true)}
+      className="w-full h-11 flex items-center justify-center gap-3 rounded-xl font-rajdhani font-semibold text-sm tracking-wider transition-all duration-200 bg-muted/30 border border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+    >
+      <FolderOpen className="w-4 h-4" />
+      Load Deck
+    </button>
+
+  </div>
+
+  <p className="py-3 text-[10px] text-muted-foreground/40 font-mono text-center border-t border-border/20">
+    Fan-made simulator · Not affiliated with CD Projekt Red
+  </p>
+
+</div>
 
         {/* Rules Panel */}
         <div className="w-full max-w-2xl bg-card/70 backdrop-blur-md border border-primary/20 rounded-2xl p-4 sm:p-6 mb-8">
@@ -201,3 +243,4 @@ export default function Home() {
     </div>
   );
 }
+
