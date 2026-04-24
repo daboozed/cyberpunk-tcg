@@ -1,7 +1,7 @@
 export function getAvailableEddies(player) {
   return (player.eddies || []).filter(e => !e.spent).length;
 }
-f
+
 export function getAvailableLegendEddies(player) {
   return (player.legends || []).filter(
     l => !l.spent && !l.goSoloActive
