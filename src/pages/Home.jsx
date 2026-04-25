@@ -69,15 +69,12 @@ export default function Home() {
     navigate("/game?mode=ai");
   };
 
+
   return (
-    <div className="min-h-screen cyberpunk-bg overflow-x-hidden overflow-y-auto">
-      {/* Background decorations */}
-      <div className="fixed inset-y-0 left-0 w-1/4 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, hsl(225 30% 6%), transparent)' }} />
-      <div className="fixed inset-y-0 right-0 w-1/4 z-10 pointer-events-none" style={{ background: 'linear-gradient(to left, hsl(225 30% 6%), transparent)' }} />
-      <div className="fixed inset-0 opacity-10 pointer-events-none" style={{
-        backgroundImage: 'linear-gradient(hsl(190 100% 50% / 0.1) 1px, transparent 1px), linear-gradient(90deg, hsl(190 100% 50% / 0.1) 1px, transparent 1px)',
-        backgroundSize: '60px 60px'
-      }} />
+  <div
+    className="min-h-screen bg-cover bg-center"
+    style={{ backgroundImage: "url('/backround.webp')" }}
+  >
 
       <div className="relative z-20 flex flex-col items-center w-full px-4 py-6 gap-6">
 
