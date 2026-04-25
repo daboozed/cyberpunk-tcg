@@ -72,8 +72,10 @@ export default function Home() {
 
   return (
   <div
-    className="min-h-screen bg-cover bg-center"
-    style={{ backgroundImage: "url('/backround.webp')" }}
+    className="min-h-screen bg-cover bg-center bg-no-repeat"
+    style={{
+      backgroundImage: "url('/backround.webp')"
+    }}
   >
 
       <div className="relative z-20 flex flex-col items-center w-full px-4 py-6 gap-6">
