@@ -10,6 +10,7 @@ import {
 import { ProgramResolver } from "../programResolver";
 export { resolveGigBoost } from "../effectResolver";
 import { resolveLegendFlip } from "../legendFlipResolver";
+import { resolveEffect } from "../effectResolver";
   // =========================
   // PHASES
   // =========================
@@ -307,13 +308,24 @@ const cost = card.cost ?? 0;
   p.hand.splice(cardIndex,1);
 
   // ================= PROGRAM =================
-  if(card.type === "program"){
-    log(s,`     Played ${card.name}`);
-    const newGs = ProgramResolver.resolveProgram(s, card.id, targetUid);
-    p.trash.push(card);
-    log(s,"     sent to trash");
-    return newGs;
+ if (card.type === "program") {
+  log(s, `     Played ${card.name}`);
+
+  if (card.effect) {
+    resolveEffect(card.effect, {
+      state: s,
+      player: "player",
+      targetUid
+    });
+  } else {
+    ProgramResolver.resolveProgram(s, card.id, targetUid);
   }
+
+  p.trash.push(card);
+  log(s, "     sent to trash");
+
+  return s;
+}
 
   // Gear attach
   if(card.type === 'gear' && targetUid) {
