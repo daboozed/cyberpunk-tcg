@@ -69,6 +69,19 @@ export default function Home() {
     navigate("/game?mode=ai");
   };
 
+  return (
+  <div
+    className="min-h-screen bg-cover bg-center bg-no-repeat"
+    style={{
+      backgroundImage:
+        "linear-gradient(rgba(0,0,0,.15), rgba(0,0,0,.35)), url('/background.webp')",
+      backgroundSize: "cover",
+      backgroundPosition: "center center",
+      backgroundRepeat: "no-repeat",
+      backgroundAttachment: "fixed"
+    }}
+  >
+
       <div className="relative z-20 flex flex-col items-center w-full px-4 py-6 gap-6">
 
         {/* Logo */}
