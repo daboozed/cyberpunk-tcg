@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { Shield, Swords, ChevronRight, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getUnitPower } from "@/lib/engine/helpers";
+import { getUnitPower } from "@/lib/engine/EconomyEngine";
 
 export default function BlockerDecisionModal({ pendingAttack, playerField, onBlock, onAllow }) {
   const [selectedBlocker, setSelectedBlocker] = useState(null);
