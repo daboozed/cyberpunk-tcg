@@ -5,7 +5,7 @@ import {
   spendEddies,
   getUnitPower,
   calcPower
-} from "./helpers";
+} from "./EconomyEngine";
    
 import { ProgramResolver } from "../programResolver";
 export { resolveGigBoost } from "../effectResolver";
