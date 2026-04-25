@@ -70,14 +70,6 @@ export default function Home() {
   };
 
 
-  return (
-  <div
-  className="min-h-screen bg-cover bg-center bg-no-repeat"
-  style={{
-    backgroundImage:
-      "linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.45)), url('/background.webp')"
-  }}
->
 
       <div className="relative z-20 flex flex-col items-center w-full px-4 py-6 gap-6">
 
