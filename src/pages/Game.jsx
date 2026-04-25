@@ -30,7 +30,7 @@ import {
   getAvailableEddies,
   getAvailableLegendEddies,
   getUnitPower
-} from "@/lib/engine/helpers";
+} from "@/lib/engine/EconomyEngine";
 import { buildCustomDeck, GIG_DICE, CARD_BACK } from "@/lib/cardPool";
 import FloorItModal from "@/components/game/FloorItModal";
 import { ProgramResolver } from "@/lib/programResolver";
