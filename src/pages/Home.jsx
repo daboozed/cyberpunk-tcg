@@ -75,7 +75,7 @@ export default function Home() {
   className="min-h-screen bg-cover bg-center bg-no-repeat"
   style={{
     backgroundImage:
-      "linear-gradient(rgba(0,0,0,.35), rgba(0,0,0,.55)), url('/backround.webp')"
+      "linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.45)), url('/backround.webp')"
   }}
 >
 
