@@ -62,10 +62,17 @@ export class ProgramResolver {
         : player.field[0];
     }
 
-    if (targets === 'friendlyGig') {
-      if (targetUid) return player.gigDice.find(g => g.id === targetUid);
-      return player.gigDice[0];
-    }
+    if (targets === "friendlyGig") {
+  if (targetUid != null) {
+    return (
+      player.gigDice.find(g => g.id === targetUid) ||
+      player.gigDice.find((_, i) => String(i) === String(targetUid)) ||
+      null
+    );
+  }
+
+  return player.gigDice[0] || null;
+}
 
     if (targets === 'rivalUnit') {
       if (targetUid) return opponent.field.find(u => u.uid === targetUid);
