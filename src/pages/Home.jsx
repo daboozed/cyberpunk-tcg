@@ -69,8 +69,6 @@ export default function Home() {
     navigate("/game?mode=ai");
   };
 
-
-
       <div className="relative z-20 flex flex-col items-center w-full px-4 py-6 gap-6">
 
         {/* Logo */}
