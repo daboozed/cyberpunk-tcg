@@ -116,6 +116,10 @@ const endTurnBtn = `
   const [cards, setCards] = useState([]);
   const [cardMap, setCardMap] = useState({});
   const [gs, setGs] = useState(() => createInitialState());
+
+window.gs = gs;
+window.setGs = setGs;
+
   const [actualIndex, setactualIndex] = useState(null);
   const [selectedAttacker, setSelectedAttacker] = useState(null);
   const [detailCard, setDetailCard] = useState(null);
@@ -257,6 +261,12 @@ const od = buildCustomDeck(
         newGs = mulligan(newGs, false);
         newGs.whose_turn = newGs.currentPlayer === 'player' ? 'player1' : 'player2';
         setWaitingForOpponent(newGs.whose_turn !== 'player1');
+
+console.log("FINAL STATE GIGS:", newGs.player.gigDice.map(g => ({
+  id: g.id,
+  value: g.value
+})));
+
         setGs(newGs);
         await base44.entities.Room.update(roomId, { game_state: JSON.stringify(newGs) });
       } else {
@@ -311,18 +321,6 @@ const od = buildCustomDeck(
   }
 }, [gs.phase, gs.turn, waitingForOpponent]);
 
-// 🔥 ADD THIS RIGHT HERE (DIRECTLY BELOW)
-useEffect(() => {
-  setRolledThisTurn(false);
-}, [gs.turn]);
-
-useEffect(() => {
-  if (gs.phase === PHASES.PICK_GIG) {
-    console.log("RESETTING DICE FOR NEW TURN");
-    setRolledThisTurn(false);
-  }
-}, [gs.phase, gs.turn]);
-
 
   // Auto-skip mulligan in multiplayer (player2 side)
   useEffect(() => {
@@ -337,17 +335,30 @@ useEffect(() => {
     setGs(newGs);
   }, [gs]);
 
-  const handlePickGig = (player, index, result) => {
-  if (rolledThisTurn) return;
+  const handlePickGig = (player, index, result = null) => {
+  if (rolledThisTurn) {
+    console.log("ROLL BLOCKED: already rolled this turn");
+    return;
+  }
 
-  const isPlayer = player === gs.player;
+  const side = player === "opponent" ? gs.opponent : gs.player;
+const die = side?.fixerArea?.[index];
+
+  console.log("TARGET DIE:", die);
+
+  if (!die) return;
+
+  const finalRoll =
+    result ?? Math.floor(Math.random() * die.sides) + 1;
 
   const newGs = pickGigDie(
     gs,
     index,
-    result,
-    isPlayer ? "player" : "opponent"
+    finalRoll,
+    player === "opponent" ? "opponent" : "player"
   );
+
+  console.log("NEW VALUE:", newGs[player].gigDice[index]);
 
   setGs(newGs);
   setRolledThisTurn(true);
@@ -645,6 +656,21 @@ setGs(newGs);
     if (isMultiplayer) mpSave(newGs);
   }, [gs, isMultiplayer, mpSave]);
 
+  const handleDebugIncreaseAllGigs = useCallback(() => {
+  setGs(prev => {
+    const updated = structuredClone(prev);
+
+    updated.player.gigDice = (updated.player.gigDice || []).map(gig => ({
+      ...gig,
+      value: Math.min(gig.sides, (gig.value || 0) + 1)
+    }));
+
+    console.log("DEBUG BOOST:", updated.player.gigDice);
+
+    return updated;
+  });
+}, []);
+
   const handleLegendPeek = useCallback((index) => {
   if (peekIndex !== null) return;
 
@@ -896,50 +922,35 @@ return (
 
   {/* PLAYER 2 (TOP) */}
   <div className="w-full max-w-[1200px]">
+   
    <PlayerArea
-  player={gs.opponent}
-  isOpponent
-  phase={gs.phase}
-  selectedAttacker={selectedAttacker}
-  onFieldUnitClick={handleOpponentFieldClick}
-  onAttackGig={handleAttackGig}
-/>
-
-{gs.opponent?.hand?.length > 0 && (
-  <div className="mx-auto max-w-[1200px] mb-2 p-2 border border-red-500 rounded bg-black/80 text-white text-xs">
-    <div className="font-bold text-red-400 mb-1">
-      AI HAND DEBUG ({gs.opponent.hand.length})
-    </div>
-
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
-      {gs.opponent.hand.map((card, i) => (
-        <div
-          key={card.uid || i}
-          className="border border-red-400 p-1 rounded"
-        >
-          <div>{card.name}</div>
-          <div>type: {card.type}</div>
-          <div>cost: {card.cost || 0}</div>
-          <div>power: {card.power || 0}</div>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+      player={gs.opponent}
+      rolledThisTurn={rolledThisTurn}
+      isOpponent
+      phase={gs.phase}
+      selectedAttacker={selectedAttacker}
+      onFieldUnitClick={handleOpponentFieldClick}
+      onAttackGig={handleAttackGig}
+      onRollGig={handlePickGig}
+    />
 
   </div>
 
   {/* PLAYER 1 BOARD */}
-  <div className="w-full max-w-[1200px] flex justify-center">
+
+  <div className="w-full max-w-[1200px] flex justify-center mt-12">
+    
     <PlayerArea
       player={gs.player}
       phase={gs.phase}
+      rolledThisTurn={rolledThisTurn}
       onLegendClick={!disableActions ? handleCallLegend : () => {}}
       onFieldUnitClick={!disableActions ? handleFieldUnitClick : () => {}}
       onFixerDieClick={!disableActions ? handlePickGig : () => {}}
+      onRollGig={handlePickGig}
       disableDice={rolledThisTurn || gs.phase !== PHASES.PICK_GIG}
       selectedAttacker={selectedAttacker}
-      playerLabel={isMultiplayer ? myPlayerLabel : 'Player 1'}
+      playerLabel={isMultiplayer ? myPlayerLabel : "Player 1"}
     />
   </div>
 
@@ -962,6 +973,14 @@ return (
     >
       END TURN
     </button>
+
+<button
+  className="px-6 py-2 rounded-md border border-green-400 text-green-300 bg-black hover:bg-green-900"
+  onClick={handleDebugIncreaseAllGigs}
+>
+  +1 ALL GIGS
+</button>
+
   </div>
 
   {/* HAND */}

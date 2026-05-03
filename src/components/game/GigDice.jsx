@@ -1,72 +1,74 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
-export default function GigDice({ die, onClick, selectable = false, small = false, disabled = false, index, player }) {
-const [displayValue, setDisplayValue] = useState(
-  die?.value ?? null
-);  
-const [rolling, setRolling] = useState(false);
-const rollingRef = useRef(false);
+export default function GigDice({
+  die,
+  onClick,
+  selectable = false,
+  small = false,
+  disabled = false,
+  index,
+  player
+}) {
+  const [displayValue, setDisplayValue] = useState(die?.value ?? null);
+  const [rolling, setRolling] = useState(false);
+  const rollingRef = useRef(false);
 
-// keep display in sync when not rolling
+  // Sync UI whenever parent die value changes
+  useEffect(() => {
+    if (!rollingRef.current) {
+      setDisplayValue(die?.value ?? null);
+    }
+  }, [die?.value]);
 
-  
   return (
-  <div
-    onClick={
-  selectable && !disabled
-    ? () => {
-        console.log("CLICKED DIE");
+    <div
+      key={`${die?.id}-${die?.value}`}
+      onClick={
+        selectable && !disabled
+          ? () => {
+              if (rolling) return;
 
-        if (rolling) return;
+              setRolling(true);
+              rollingRef.current = true;
 
-        setRolling(true);
-        rollingRef.current = true;
-        setDisplayValue(Math.floor(Math.random() * die.sides) + 1);
+              let ticks = 0;
+              const finalResult =
+                Math.floor(Math.random() * die.sides) + 1;
 
-        let ticks = 0;
-        let finalResult = Math.floor(Math.random() * die.sides) + 1;
+              const interval = setInterval(() => {
+                setDisplayValue(
+                  Math.floor(Math.random() * die.sides) + 1
+                );
 
-        const interval = setInterval(() => {
-          const next = Math.floor(Math.random() * die.sides) + 1;
-          setDisplayValue(next);
-          ticks++;
+                ticks++;
 
-          if (ticks > 12) {
-            clearInterval(interval);
+                if (ticks > 12) {
+                  clearInterval(interval);
 
-            setDisplayValue(finalResult);
-            setRolling(false);
-            rollingRef.current = false;
+                  setDisplayValue(finalResult);
+                  setRolling(false);
+                  rollingRef.current = false;
 
-            setTimeout(() => {
-              onClick?.(player, index, finalResult);
-            }, 150);
-          }
-        }, 80);
+                  setTimeout(() => {
+                    onClick?.(player, index, finalResult);
+                  }, 150);
+                }
+              }, 80);
+            }
+          : undefined
       }
-    : undefined
-}
-    title={die.label}
-    className="flex items-center justify-center border border-white bg-black text-white"
-    style={{
-      width: 45,
-      height: 45,
-      fontSize: 24,
-      opacity: selectable && !disabled ? 1 : 0.4,
-      cursor: selectable && !disabled ? "pointer" : "not-allowed",
-          }}
-  >
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1 }}>
-  {displayValue === null ? (
-    <div style={{ fontSize: 14 }}>
-      d{die.sides}
+      title={die?.label}
+      className="flex items-center justify-center border border-white bg-black text-white"
+      style={{
+        width: small ? 36 : 45,
+        height: small ? 36 : 45,
+        fontSize: small ? 18 : 24,
+        opacity: selectable && !disabled ? 1 : 0.4,
+        cursor:
+          selectable && !disabled ? "pointer" : "not-allowed"
+      }}
+    >
+      {displayValue === null ? `d${die?.sides}` : displayValue}
     </div>
-  ) : (
-    <div style={{ fontSize: 20 }}>
-      {displayValue}
-    </div>
-  )}
-</div>
-  </div>
-);
+  );
 }

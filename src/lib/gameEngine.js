@@ -271,7 +271,6 @@ console.log("PLAYCARD effect:", effect);
 const requiresTarget =
   effect === "p1" ||
   effect === "p2" ||
-  effect === "p3" ||
   effect === "p4" ||
   effect === "p5" ||
   effect === "p7";
@@ -288,7 +287,38 @@ if (requiresTarget) {
   s.awaitingTarget = true;
   return s;
 }
+// DIRECT INDUSTRIAL ASSEMBLY TEST
+if (effect === "p3") {
+    p.gigDice?.slice().sort((a,b)=>b.value-a.value)[0];
 
+  if (!firstGig) return s;
+
+  const cost = card.cost ?? 0;
+
+  if (getAvailableEddies(p) + getAvailableLegendEddies(p) < cost) {
+    return s;
+  }
+
+  spendEddies(p, cost);
+
+  p.hand.splice(cardIndex, 1);
+
+  firstGig.value = Math.min(
+    firstGig.sides,
+    (firstGig.value || 0) + 4
+  );
+
+  if (p.streetCred >= 7 && p.deck.length) {
+    p.hand.push(p.deck.pop());
+  }
+
+  p.trash.push(card);
+
+  log(s, `     Played ${card.name}`);
+  log(s, `     ${firstGig.label} boosted to ${firstGig.value}`);
+
+  return s;
+}
 const cost = card.cost ?? 0;
 
 

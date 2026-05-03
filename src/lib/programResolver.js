@@ -5,7 +5,7 @@ export class ProgramResolver {
     const effect = getProgramEffect(cardId);
     if (!effect) return state;
 
-    const s = { ...state };
+    const s = structuredClone(state);
     const p = s.player;
     const opp = s.opponent;
 
@@ -134,8 +134,9 @@ export class ProgramResolver {
         } else if (action.amount !== undefined) {
           const newVal = Math.max(1, Math.min(target.sides, (target.value || 0) + action.amount));
           target.value = newVal;
-          console.log(`[Industrial Assembly] Adjusted gig value by +${action.amount} → ${newVal}`);
-        }
+            state.combatLog = state.combatLog || [];
+            state.combatLog.push( `Industrial Assembly increased Gig by +${action.amount}.`
+);        }
       }
     }
 
@@ -158,7 +159,7 @@ export class ProgramResolver {
 
     if (type === 'drawCard') {
       if (player.deck.length > 0) {
-        player.hand.push(player.deck.pop());
+        player.hand.push(player.deck.shift());
       }
     }
   }

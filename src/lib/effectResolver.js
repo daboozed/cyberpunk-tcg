@@ -47,7 +47,7 @@ export function resolveIndustrialAssembly(state, gigId) {
   gig.value = Math.min(gig.value + 4, gig.sides);
   log(s, `     Industrial Assembly: Gig boosted to ${gig.value}`);
   if (s.player.streetCred >= 7 && s.player.deck.length) {
-    s.player.hand.push(s.player.deck.pop());
+    s.player.hand.push(s.player.deck.shift());
     log(s, `     Drew a card (7+ ★)`);
   }
   return s;
@@ -64,7 +64,7 @@ export function resolveAfterpartyAdjustment(state, gigIndex, adjustment) {
   log(s, `     Afterparty: rival Gig adjusted to ${gig.value}`);
   const matches = s.player.gigDice.some(d => d.value === gig.value);
   if (matches && s.player.deck.length) {
-    s.player.hand.push(s.player.deck.pop());
+    s.player.hand.push(s.player.deck.shift());
     log(s, `     Gig matched! Drew a card`);
   }
   return s;
@@ -217,8 +217,16 @@ function resolveProgramMulti(effect, ctx) {
       ? [effect.action]
       : [];
 
-  for (const action of actions) {
-    runAction(action, ctx);
+  return runActionQueue(actions, ctx);
+}
+
+function runActionQueue(actions, ctx, startIndex = 0) {
+  for (let i = startIndex; i < actions.length; i++) {
+    const result = runAction(actions[i], ctx, actions, i);
+
+    if (result === "PAUSE") {
+      return ctx.state;
+    }
   }
 
   return ctx.state;
@@ -240,15 +248,27 @@ function resolveLegendTrigger(effect, ctx) {
 
 /* -------------------- ACTION ENGINE -------------------- */
 
-function runAction(action, ctx) {
+function runAction(action, ctx, actions = [], index = 0) {
   switch (action) {
     case "BUFF_FRIENDLY_UNIT_4_THIS_TURN":
       resolveRebootOptics(ctx.state, ctx.targetUid);
       break;
 
-    case "BOOST_FRIENDLY_GIG_4":
-      resolveGigBoost(ctx.state, ctx.gigId, 4);
-      break;
+    case "BOOST_SELECTED_GIG_4": {
+  const targetId =
+    ctx.gigId ??
+    ctx.state.player.gigDice?.[0]?.id;
+
+  console.log("TARGET GIG ID:", targetId);
+  console.log("ALL GIGS BEFORE:", ctx.state.player.gigDice);
+
+  if (targetId) {
+    resolveGigBoost(ctx.state, targetId, 4);
+  }
+
+  console.log("ALL GIGS AFTER:", ctx.state.player.gigDice);
+  break;
+}
 
     case "IF_STARS_7_DRAW_1":
       drawIfStreetCred(ctx, 7, 1);
@@ -256,82 +276,91 @@ function runAction(action, ctx) {
 
     case "PEEK_FRIENDLY_FACEDOWN_LEGEND":
       openPeekLegendModal(ctx);
-      break;
+      return "PAUSE";
 
     case "DEFEAT_ALL_OTHER_UNITS":
       defeatAllOtherUnits(ctx);
       break;
 
-case "CHOOSE_FRIENDLY_GIG":
-  ctx.setPendingProgram?.({ type:"chooseFriendlyGig", player:ctx.player, next:"BOOST_SELECTED_GIG_4" });
-  break;
+    case "CHOOSE_FRIENDLY_GIG":
+      ctx.setPendingProgram?.({
+        type: "chooseFriendlyGig",
+        player: ctx.player,
+        remainingActions: actions.slice(index + 1)
+      });
+      return "PAUSE";
 
-case "BOOST_SELECTED_GIG_4":
-  resolveGigBoost(ctx.state, ctx.gigId, 4);
-  break;
+    case "CHOOSE_RIVAL_GIG":
+      ctx.setPendingProgram?.({
+        type: "chooseRivalGig",
+        player: ctx.player,
+        remainingActions: actions.slice(index + 1)
+      });
+      return "PAUSE";
 
-case "CHOOSE_RIVAL_GIG":
-  ctx.setPendingProgram?.({ type:"chooseRivalGig", player:ctx.player, next:"ADJUST_SELECTED_GIG_2" });
-  break;
+    case "CHOOSE_FRIENDLY_UNIT":
+      ctx.setPendingProgram?.({
+        type: "chooseFriendlyUnit",
+        player: ctx.player,
+        remainingActions: actions.slice(index + 1)
+      });
+      return "PAUSE";
 
-case "ADJUST_SELECTED_GIG_2":
-  if (ctx.gigId) {
-    const gig = ctx.state.opponent.gigDice.find(g => g.id === ctx.gigId);
-    if (gig) {
-      gig.value = Math.max(1, Math.min(gig.sides, gig.value + 2));
-      log(ctx.state, `     Rival Gig adjusted to ${gig.value}`);
-    }
-  }
-  break;
+    case "CHOOSE_SPENT_UNIT_MAX_4":
+      ctx.setPendingProgram?.({
+        type: "chooseSpentUnitMax4",
+        player: ctx.player,
+        remainingActions: actions.slice(index + 1)
+      });
+      return "PAUSE";
 
-case "IF_MATCHING_FRIENDLY_GIG_DRAW_1":
-  if (
-    ctx.state.player.gigDice.some(
-      g => g.value === ctx.state.opponent.gigDice.find(x => x.id === ctx.gigId)?.value
-    )
-  ) {
-    drawIfStreetCred(ctx, 0, 1);
-  }
-  break;
+    case "CHOOSE_EQUIPPED_FRIENDLY_UNIT":
+      ctx.setPendingProgram?.({
+        type: "chooseEquippedFriendlyUnit",
+        player: ctx.player,
+        remainingActions: actions.slice(index + 1)
+      });
+      return "PAUSE";
 
-case "CHOOSE_FRIENDLY_UNIT":
-  ctx.setPendingProgram?.({ type:"chooseFriendlyUnit", player:ctx.player, next:"BUFF_SELECTED_UNIT_4_THIS_TURN" });
-  break;
+    case "CHOOSE_RIVAL_UNIT_MAX_3":
+      ctx.setPendingProgram?.({
+        type: "chooseRivalUnitMax3",
+        player: ctx.player,
+        remainingActions: actions.slice(index + 1)
+      });
+      return "PAUSE";
 
-case "BUFF_SELECTED_UNIT_4_THIS_TURN":
-  resolveRebootOptics(ctx.state, ctx.targetUid);
-  break;
+    case "ADJUST_SELECTED_GIG_2":
+      if (ctx.gigId) {
+        const gig = ctx.state.opponent.gigDice.find(g => g.id === ctx.gigId);
+        if (gig) {
+          gig.value = Math.max(1, Math.min(gig.sides, gig.value + 2));
+          log(ctx.state, `     Rival Gig adjusted to ${gig.value}`);
+        }
+      }
+      break;
 
-case "DEFEAT_SELECTED_UNIT_END_TURN":
-  {
-    const unit = ctx.state.player.field.find(u => u.uid === ctx.targetUid);
-    if(unit) unit.defeatedAtEndOfTurn = true;
-  }
-  break;
+    case "IF_MATCHING_FRIENDLY_GIG_DRAW_1":
+      if (
+        ctx.state.player.gigDice.some(
+          g => g.value === ctx.state.opponent.gigDice.find(x => x.id === ctx.gigId)?.value
+        )
+      ) {
+        drawIfStreetCred(ctx, 0, 1);
+      }
+      break;
 
-case "CHOOSE_SPENT_UNIT_MAX_4":
-  ctx.setPendingProgram?.({ type:"chooseSpentUnitMax4", player:ctx.player, next:"RETURN_SELECTED_TO_HAND" });
-  break;
+    case "RETURN_SELECTED_TO_HAND":
+      resolveFloorIt(ctx.state, ctx.targetUid);
+      break;
 
-case "RETURN_SELECTED_TO_HAND":
-  resolveFloorIt(ctx.state, ctx.targetUid);
-  break;
+    case "BUFF_PER_GEAR_2_THIS_TURN":
+      resolveCyberpsychosis(ctx.state, ctx.targetUid);
+      break;
 
-case "CHOOSE_EQUIPPED_FRIENDLY_UNIT":
-  ctx.setPendingProgram?.({ type:"chooseEquippedFriendlyUnit", player:ctx.player, next:"BUFF_PER_GEAR_2_THIS_TURN" });
-  break;
-
-case "BUFF_PER_GEAR_2_THIS_TURN":
-  resolveCyberpsychosis(ctx.state, ctx.targetUid);
-  break;
-
-case "CHOOSE_RIVAL_UNIT_MAX_3":
-  ctx.setPendingProgram?.({ type:"chooseRivalUnitMax3", player:ctx.player, next:"SPEND_SELECTED_UNIT" });
-  break;
-
-case "SPEND_SELECTED_UNIT":
-  resolveCorporateSurveillance(ctx.state, ctx.targetUid);
-  break;
+    case "SPEND_SELECTED_UNIT":
+      resolveCorporateSurveillance(ctx.state, ctx.targetUid);
+      break;
 
     default:
       console.log("Unhandled action:", action);
@@ -345,7 +374,7 @@ case "SPEND_SELECTED_UNIT":
 function drawIfStreetCred(ctx, min, amount) {
   if (ctx.state.player.streetCred >= min) {
     for (let i = 0; i < amount; i++) {
-      const card = ctx.state.player.deck.pop();
+      const card = ctx.state.player.deck.shift();
       if (card) ctx.state.player.hand.push(card);
     }
   }
@@ -369,4 +398,8 @@ function defeatAllOtherUnits(ctx) {
     .filter(u => u.uid !== sourceUid)
     .forEach(u => defeatUnit(ctx.state, "opponent", u.uid));
   return ctx.state;
+}
+
+export function resumePendingActions(actions, ctx) {
+  return runActionQueue(actions, ctx, 0);
 }

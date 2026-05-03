@@ -24,21 +24,16 @@ export default function ChooseGigModal({ gigs, amount, title, description, onCho
             const newVal = Math.min(die.sides, die.value + (amount || 0));
             return (
               <button
-                key={die.id || i}
-                onClick={() => onChoose(die.id)}
-                className={cn(
-                  "group flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-border/40",
-                  "hover:border-violet-400/60 hover:bg-violet-500/10 transition-all hover:scale-110 cursor-pointer"
-                )}
-              >
-                <GigDice die={die} />
-                <div className="text-center">
-                  <span className="text-[10px] font-mono text-muted-foreground block">{die.label}: {die.value}</span>
-                  {amount > 0 && (
-                    <span className="text-[10px] font-mono text-violet-400 block">→ {newVal}</span>
-                  )}
-                </div>
-              </button>
+  key={die.id || i}
+  type="button"
+  onClick={() => {
+    console.log("MODAL CLICK", die.id);
+    onChoose?.(die.id);
+  }}
+  className="p-4 border border-red-500 bg-black text-white"
+>
+  PICK {die.label} ({die.value})
+</button>
             );
           })}
         </div>
