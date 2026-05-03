@@ -70,7 +70,6 @@ export default function Home() {
     navigate("/game?mode=ai");
   };
 
-<<<<<<< HEAD
   return (
   <div
     className="min-h-screen bg-cover bg-center bg-no-repeat"
@@ -85,23 +84,6 @@ export default function Home() {
   >
     <div
   className="min-h-screen overflow-x-hidden overflow-y-auto"
-=======
-  
-return (
-  <div
-    className="min-h-screen bg-no-repeat"
-    style={{
-      backgroundImage:
-        "linear-gradient(rgba(0,0,0,.20), rgba(0,0,0,.45)), url('/background.webp')",
-      backgroundSize: "cover",
-backgroundPosition: "center top",
-      backgroundAttachment: "fixed"
-    }}
-  >
-    {/* HERO BANNER */}
-<div
-  className="absolute z-30 select-none"
->>>>>>> 346984b (initial commit)
   style={{
     left: "25px",   // move left / right
     top: "25px",     // move up / down

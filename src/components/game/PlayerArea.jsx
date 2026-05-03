@@ -1,4 +1,3 @@
-<<<<<<< HEAD
   import { useState } from "react";
   import UnitWithGear from "./UnitWithGear";
   import GigDice from "./GigDice";
@@ -7,16 +6,6 @@
   import CardHoverPreview from "./CardHoverPreview";
   import { cn } from "@/lib/utils";
   import { PHASES } from "@/lib/engine/gameEngine";
-=======
-    import { useState } from "react";
-    import UnitWithGear from "./UnitWithGear";
-    import { getAvailableEddies, getAvailableLegendEddies, PHASES } from "@/lib/gameEngine";
-    import { LEGEND_BACK, CARD_BACK } from "@/lib/cardPool";
-    import CardHoverPreview from "./CardHoverPreview";
-    import { cn } from "@/lib/utils";
-    import GigArea from "./GigArea";
-    
->>>>>>> 346984b (initial commit)
 
     function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
 

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import CardDetailModal from "@/components/game/CardDetailModal";
 import BlockerDecisionModal from "@/components/game/BlockerDecisionModal";
 import AdjustGigModal from "@/components/game/AdjustGigModal";
@@ -11,21 +10,6 @@ import { cn } from "@/lib/utils";
 import { CARD_BACK } from "@/lib/cardPool";
 import { ProgramResolver } from "@/lib/programResolver";
 import { PHASES, resolvePendingEffect } from "@/lib/engine/gameEngine";
-=======
-  import CardDetailModal from "@/components/game/CardDetailModal";
-  import BlockerDecisionModal from "@/components/game/BlockerDecisionModal";
-  import AdjustGigModal from "@/components/game/AdjustGigModal";
-  import GigStealModal from "@/components/game/GigStealModal";
-  import ChooseGigModal from "@/components/game/ChooseGigModal";
-  import FloorItModal from "@/components/game/FloorItModal";
-  import CardHoverPreview from "@/components/game/CardHoverPreview";
-  import { Button } from "@/components/ui/button";
-  import { cn } from "@/lib/utils";
-  import { CARD_BACK } from "@/lib/cardPool";
-  import { PHASES, resolvePendingEffect } from "@/lib/gameEngine";
-  import { ProgramResolver } from "@/lib/programResolver";
-  import { resolveEffect, resumePendingActions } from "@/lib/effectResolver";
->>>>>>> 346984b (initial commit)
 
   export default function GameModals(props) {
     const {
