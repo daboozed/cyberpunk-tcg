@@ -6,6 +6,7 @@
   import CardHoverPreview from "./CardHoverPreview";
   import { cn } from "@/lib/utils";
   import { PHASES } from "@/lib/engine/gameEngine";
+  import GigArea from "./gigArea";
 
     function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
 
