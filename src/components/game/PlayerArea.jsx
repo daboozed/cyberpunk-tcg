@@ -370,7 +370,7 @@ const trashY = "0px";
                   shadow-[0_0_8px_rgba(253,224,71,.35)]
                   hover:scale-105
                   hover:shadow-[0_0_12px_rgba(253,224,71,.55)]
-                  transition-all duration-1
+                  transition-all duration-100
                   "
         
       >
@@ -393,7 +393,7 @@ const trashY = "0px";
       {/* PLAYER 2: LEGENDS BOX */}
       <div
           style={{
-            position: "RELATIVE",
+            position: "relative",
             top: "-35px",     // up / down
             left: "170px",    // left / right
   }}
