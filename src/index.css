@@ -110,6 +110,22 @@
   animation: glow-pulse-slow 4s ease-in-out infinite;
 }
 
+.spendBar { 
+  position: absolute;
+   top: -10px; 
+   left: 0; 
+   right: 0; 
+   background: linear-gradient(90deg, #00c3ff, #0066ff); 
+   color: white; 
+   font-size: 10px; 
+   font-weight: bold; 
+   letter-spacing: 1px; 
+   text-align: center; 
+   padding: 2px 0; 
+   border-radius: 4px; 
+   box-shadow: 0 0 8px rgba(0, 140, 255, 0.8); 
+  }
+
 /* ADD THIS HERE */
 @keyframes spinMove {
   0% {

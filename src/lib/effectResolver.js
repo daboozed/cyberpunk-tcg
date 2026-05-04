@@ -358,12 +358,14 @@ function runAction(action, ctx, actions = [], index = 0) {
       resolveCyberpsychosis(ctx.state, ctx.targetUid);
       break;
 
-    case "SPEND_SELECTED_UNIT":
-      resolveCorporateSurveillance(ctx.state, ctx.targetUid);
-      break;
-
-    default:
-      console.log("Unhandled action:", action);
+    case "SPEND_SELECTED_UNIT_MAX_3":
+  ctx.setPendingProgram?.({
+    type: "chooseRivalUnitMax3",
+    onSelect: (unit) => {
+      resolveCorporateSurveillance(ctx.state, unit.uid);
+    }
+  });
+  return "PAUSE";
   }
 
   return ctx.state;
