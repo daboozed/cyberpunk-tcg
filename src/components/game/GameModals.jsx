@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CARD_BACK } from "@/lib/cardPool";
 import { PHASES, resolvePendingEffect } from "@/lib/engine/gameEngine";
+import { resolveEffect } from "@/lib/effectResolver";
 
   export default function GameModals(props) {
     const {
@@ -314,55 +315,128 @@ import { PHASES, resolvePendingEffect } from "@/lib/engine/gameEngine";
 )}
         
   {/* AFTERPARTY */}
-  {pendingProgram?.effect === "p4" && (
-    <AdjustGigModal
-      rivalGigs={gs.opponent.gigDice}
-      playerGigs={gs.player.gigDice}
-      onAdjust={(gigIndex, adjustment) => {
-        const newGs = ProgramResolver.resolveProgram(gs, "p4", {
-          gigIndex,
+  {/* AFTERPARTY */}
+{pendingProgram?.effect === "p4" && (
+  <AdjustGigModal
+    rivalGigs={gs.opponent.gigDice}
+    playerGigs={gs.player.gigDice}
+    onAdjust={(gigIndex, adjustment) => {
+      const newGs = structuredClone(gs);
+      const p = newGs.player;
+      const card = p.hand[pendingProgram.cardIndex];
+      const selectedGig = newGs.opponent.gigDice[gigIndex];
+
+      if (card?.effectData && selectedGig) {
+        resolveEffect(card.effectData, {
+          state: newGs,
+          player: "player",
+          gigId: selectedGig.id,
           adjustment
         });
+      }
 
-        setGs(newGs);
-        setPendingProgram(null);
+      const [removed] = p.hand.splice(pendingProgram.cardIndex, 1);
+      p.trash.push(removed);
 
-        if (isMultiplayer) mpSave(newGs);
-      }}
-      onClose={() => setPendingProgram(null)}
-    />
-  )}
+      setGs(newGs);
+      setPendingProgram(null);
+
+      if (isMultiplayer) mpSave(newGs);
+    }}
+    onClose={() => setPendingProgram(null)}
+  />
+)}
 
   {/* REBOOT OPTICS */}
-  {pendingProgram?.effect === "p1" && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="bg-card border border-cyan-500 rounded-xl p-6 max-w-lg w-full mx-4">
-        <h2 className="font-orbitron text-xl text-cyan-400 mb-2">
-          REBOOT OPTICS
-        </h2>
+  {/* REBOOT OPTICS */}
+{pendingProgram?.effect === "p1" && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div className="bg-card border border-cyan-500 rounded-xl p-6 max-w-lg w-full mx-4">
+      <h2 className="font-orbitron text-xl text-cyan-400 mb-2">
+        REBOOT OPTICS
+      </h2>
 
-        <p className="text-xs text-muted-foreground mb-4">
-          Choose a friendly Unit to gain +4 Power this turn.
-        </p>
+      <p className="text-xs text-muted-foreground mb-4">
+        Choose a friendly Unit to gain +4 Power this turn.
+      </p>
 
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          {gs.player.field.map((unit) => (
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {gs.player.field.map((unit) => (
+          <Button
+            key={unit.uid}
+            onClick={() => {
+              const newGs = structuredClone(gs);
+              const p = newGs.player;
+
+              const card = p.hand[pendingProgram.cardIndex];
+
+              if (card?.effectData) {
+                resolveEffect(card.effectData, {
+                  state: newGs,
+                  player: "player",
+                  targetUid: unit.uid
+                });
+              }
+
+              const [removed] = p.hand.splice(pendingProgram.cardIndex, 1);
+              p.trash.push(removed);
+
+              setGs(newGs);
+              setPendingProgram(null);
+
+              if (isMultiplayer) mpSave(newGs);
+            }}
+          >
+            {unit.name}
+          </Button>
+        ))}
+      </div>
+
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => setPendingProgram(null)}
+      >
+        Cancel
+      </Button>
+    </div>
+  </div>
+)}
+
+  {/* CYBERPSYCHOSIS */}
+  {/* CYBERPSYCHOSIS */}
+{pendingProgram?.effect === "p5" && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div className="bg-card border border-yellow-500 rounded-xl p-6 max-w-lg w-full mx-4">
+      <h2 className="font-orbitron text-xl text-yellow-400 mb-2">
+        CYBERPSYCHOSIS
+      </h2>
+
+      <p className="text-xs text-muted-foreground mb-4">
+        Choose an equipped Unit.
+      </p>
+
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {gs.player.field
+          .filter((u) => (u.gear || []).length > 0)
+          .map((unit) => (
             <Button
               key={unit.uid}
               onClick={() => {
-                const newGs = ProgramResolver.resolveProgram(
-                  gs,
-                  "p1",
-                  unit.uid
-                );
-
+                const newGs = structuredClone(gs);
                 const p = newGs.player;
-                const card = p.hand.splice(
-                  pendingProgram.cardIndex,
-                  1
-                )[0];
+                const card = p.hand[pendingProgram.cardIndex];
 
-                p.trash.push(card);
+                if (card?.effectData) {
+                  resolveEffect(card.effectData, {
+                    state: newGs,
+                    player: "player",
+                    targetUid: unit.uid
+                  });
+                }
+
+                const [removed] = p.hand.splice(pendingProgram.cardIndex, 1);
+                p.trash.push(removed);
 
                 setGs(newGs);
                 setPendingProgram(null);
@@ -373,166 +447,115 @@ import { PHASES, resolvePendingEffect } from "@/lib/engine/gameEngine";
               {unit.name}
             </Button>
           ))}
-        </div>
-
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => setPendingProgram(null)}
-        >
-          Cancel
-        </Button>
       </div>
+
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => setPendingProgram(null)}
+      >
+        Cancel
+      </Button>
     </div>
-  )}
-
-  {/* CYBERPSYCHOSIS */}
-  {pendingProgram?.effect === "p5" && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="bg-card border border-yellow-500 rounded-xl p-6 max-w-lg w-full mx-4">
-        <h2 className="font-orbitron text-xl text-yellow-400 mb-2">
-          CYBERPSYCHOSIS
-        </h2>
-
-        <p className="text-xs text-muted-foreground mb-4">
-          Choose an equipped Unit.
-        </p>
-
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          {gs.player.field
-            .filter((u) => (u.gear || []).length > 0)
-            .map((unit) => (
-              <Button
-                key={unit.uid}
-                onClick={() => {
-                  const newGs = ProgramResolver.resolveProgram(
-                    gs,
-                    "p5",
-                    unit.uid
-                  );
-
-                  const p = newGs.player;
-                  const card = p.hand.splice(
-                    pendingProgram.cardIndex,
-                    1
-                  )[0];
-
-                  p.trash.push(card);
-
-                  setGs(newGs);
-                  setPendingProgram(null);
-
-                  if (isMultiplayer) mpSave(newGs);
-                }}
-              >
-                {unit.name}
-              </Button>
-            ))}
-        </div>
-
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => setPendingProgram(null)}
-        >
-          Cancel
-        </Button>
-      </div>
-    </div>
-  )}
+  </div>
+)}
 
   {/* CORPORATE SURVEILLANCE */}
-  {pendingProgram?.effect === "p7" && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="bg-card border border-green-500 rounded-xl p-6 max-w-lg w-full mx-4">
-        <h2 className="font-orbitron text-xl text-green-400 mb-2">
-          CORPORATE SURVEILLANCE
-        </h2>
+  {/* CORPORATE SURVEILLANCE */}
+{pendingProgram?.effect === "p7" && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div className="bg-card border border-green-500 rounded-xl p-6 max-w-lg w-full mx-4">
+      <h2 className="font-orbitron text-xl text-green-400 mb-2">
+        CORPORATE SURVEILLANCE
+      </h2>
 
-        <p className="text-xs text-muted-foreground mb-4">
-          Choose a rival Unit costing 3 or less.
-        </p>
+      <p className="text-xs text-muted-foreground mb-4">
+        Choose a rival Unit costing 3 or less.
+      </p>
 
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          {gs.opponent.field
-            .filter((u) => (u.cost || 0) <= 3)
-            .map((unit) => (
-              <Button
-                key={unit.uid}
-                onClick={() => {
-                  const newGs = ProgramResolver.resolveProgram(
-                    gs,
-                    "p7",
-                    unit.uid
-                  );
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {gs.opponent.field
+          .filter((u) => (u.cost || 0) <= 3)
+          .map((unit) => (
+            <Button
+              key={unit.uid}
+              onClick={() => {
+                const newGs = structuredClone(gs);
+                const p = newGs.player;
+                const card = p.hand[pendingProgram.cardIndex];
 
-                  const p = newGs.player;
-                  const card = p.hand.splice(
-                    pendingProgram.cardIndex,
-                    1
-                  )[0];
+                if (card?.effectData) {
+                  resolveEffect(card.effectData, {
+                    state: newGs,
+                    player: "player",
+                    targetUid: unit.uid
+                  });
+                }
 
-                  p.trash.push(card);
+                const [removed] = p.hand.splice(pendingProgram.cardIndex, 1);
+                p.trash.push(removed);
 
-                  setGs(newGs);
-                  setPendingProgram(null);
+                setGs(newGs);
+                setPendingProgram(null);
 
-                  if (isMultiplayer) mpSave(newGs);
-                }}
-              >
-                {unit.name}
-              </Button>
-            ))}
-        </div>
-
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => setPendingProgram(null)}
-        >
-          Cancel
-        </Button>
+                if (isMultiplayer) mpSave(newGs);
+              }}
+            >
+              {unit.name}
+            </Button>
+          ))}
       </div>
+
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => setPendingProgram(null)}
+      >
+        Cancel
+      </Button>
     </div>
-  )}
+  </div>
+)}
 
         {/* FLOOR IT */}
-        {showFloorItModal && (
-          <FloorItModal
-            friendlyUnits={gs.player.field.filter(
-              (u) => u.spent && (u.cost || 0) <= 4
-            )}
-            rivalUnits={gs.opponent.field.filter(
-              (u) => u.spent && (u.cost || 0) <= 4
-            )}
-            onSelect={(unit) => {
-              const newGs = ProgramResolver.resolveProgram(
-                gs,
-                "p2",
-                unit.uid
-              );
+        {/* FLOOR IT */}
+{showFloorItModal && (
+  <FloorItModal
+    friendlyUnits={gs.player.field.filter(
+      (u) => u.spent && (u.cost || 0) <= 4
+    )}
+    rivalUnits={gs.opponent.field.filter(
+      (u) => u.spent && (u.cost || 0) <= 4
+    )}
+    onSelect={(unit) => {
+      const newGs = structuredClone(gs);
+      const p = newGs.player;
+      const card = p.hand[floorItCardIndex];
 
-              const p = newGs.player;
-              const card = p.hand.splice(
-                floorItCardIndex,
-                1
-              )[0];
+      if (card?.effectData) {
+        resolveEffect(card.effectData, {
+          state: newGs,
+          player: "player",
+          targetUid: unit.uid
+        });
+      }
 
-              p.trash.push(card);
+      const [removed] = p.hand.splice(floorItCardIndex, 1);
+      p.trash.push(removed);
 
-              setGs(newGs);
-              setShowFloorItModal(false);
-              setFloorItCardIndex(null);
-              setactualIndex(null);
+      setGs(newGs);
+      setShowFloorItModal(false);
+      setFloorItCardIndex(null);
+      setactualIndex(null);
 
-              if (isMultiplayer) mpSave(newGs);
-            }}
-            onCancel={() => {
-              setShowFloorItModal(false);
-              setFloorItCardIndex(null);
-            }}
-          />
-        )}
+      if (isMultiplayer) mpSave(newGs);
+    }}
+    onCancel={() => {
+      setShowFloorItModal(false);
+      setFloorItCardIndex(null);
+    }}
+  />
+)}
       </>
     );
   }
