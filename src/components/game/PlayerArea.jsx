@@ -8,82 +8,97 @@
     import { PHASES } from "@/lib/engine/gameEngine";
     import GigArea from "./gigArea";
 
-      function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
+function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
+  const safeLegends = Array.isArray(legends)
+    ? legends.map(l => (l && typeof l === "object" ? l : null))
+    : [];
 
-      const safeLegends = Array.isArray(legends)
-        ? legends.map(l => (l && typeof l === "object" ? l : null))
-        : [];
+  const legendSlots = [
+    { left: "-45px", top: "5px" },
+    { left: "60px", top: "9px" },
+    { left: "162px", top: "5px" },
+  ];
 
-        return (
-          <div>
-            <p className="text-xs font-orbitron mb-1" style={{ color: borderColor }}>LEGENDS</p>
-            <div
-        className="flex gap-1 p-1 rounded-md"
+  return (
+    <div>
+      <p className="text-xs font-orbitron mb-1" style={{ color: borderColor }}>
+        LEGENDS
+      </p>
+
+      <div
+        className="relative rounded-md"
         style={{
           border: `1px dashed ${borderColor}`,
-          width: "176px",   // 👈 EXACT WIDTH FOR 3 CARDS
+          width: "290px",
+          height: "92px",
         }}
       >
-              {[0, 1, 2].map((i) => {
-                
-      const legend = safeLegends[i];
+        {[0, 1, 2].map((i) => {
+          const legend = safeLegends[i];
+          const slot = legendSlots[i];
 
-    // GO SOLO SLOT PLACEHOLDER
-    if (legend?.goSoloActive) {
-      return (
-        <div
-          key={`solo-${i}`}
-          className="w-14 h-20 flex items-center justify-center text-[9px] opacity-60"
-          style={{
-            border: `2px dashed ${borderColor}`,
-            background: "rgba(255,255,255,0.03)",
-            filter: "grayscale(100%)",
-            pointerEvents: "none",
-          }}
-        >
-          SOLO
-        </div>
-      );
-    }
+          if (legend?.goSoloActive) {
+            return (
+              <div
+                key={`solo-${i}`}
+                className="absolute w-14 h-20 flex items-center justify-center text-[9px] opacity-60"
+                style={{
+                  left: slot.left,
+                  top: slot.top,
+                  border: `2px dashed ${borderColor}`,
+                  background: "rgba(255,255,255,0.03)",
+                  filter: "grayscale(100%)",
+                  pointerEvents: "none",
+                }}
+              >
+                SOLO
+              </div>
+            );
+          }
 
+          if (!legend || typeof legend !== "object" || !legend.uid) {
+            return (
+              <div
+                key={i}
+                className="absolute w-14 h-20 flex items-center justify-center text-[10px]"
+                style={{
+                  left: slot.left,
+                  top: slot.top,
+                  border: "1px dashed " + borderColor,
+                }}
+              >
+                EMPTY
+              </div>
+            );
+          }
 
-
-    // EMPTY SLOT
-    if (!legend || typeof legend !== "object" || !legend.uid) {
-      return (
-        <div
-          key={i}
-          className="w-14 h-20 flex items-center justify-center text-[10px]"
-          style={{ border: "1px dashed " + borderColor }}
-        >
-          EMPTY
-        </div>
-      );
-    }
-                return (
-                  <div
-        key={legend?.uid ?? `legend-${i}`}
-        onClick={() => onLegendClick?.(i)}
-        onMouseEnter={() => legend?.faceUp && onHover?.(legend)}
-        onMouseLeave={() => onLeave?.()}
-        className="cursor-pointer"
-      >
-        <img
-        src={legend?.faceUp && legend?.imageUrl ? legend.imageUrl : LEGEND_BACK}
-        className="w-14 h-20 block transition-all duration-200"
-        style={{
-          transform: legend?.spent ? "rotate(45deg)" : "rotate(0deg)",
-          marginRight: legend?.spent ? "12px" : "4px",
-          boxShadow: "0 0 6px rgba(0,255,255,0.25)",
-        }}
-      />
-      </div>
-                );
-              })}
+          return (
+            <div
+              key={legend?.uid ?? `legend-${i}`}
+              onClick={() => onLegendClick?.(i)}
+              onMouseEnter={() => legend?.faceUp && onHover?.(legend)}
+              onMouseLeave={() => onLeave?.()}
+              className="absolute cursor-pointer"
+              style={{
+                left: slot.left,
+                top: slot.top,
+              }}
+            >
+              <img
+                src={legend?.faceUp && legend?.imageUrl ? legend.imageUrl : LEGEND_BACK}
+                className="w-14 h-20 block transition-all duration-200"
+                style={{
+                  transform: legend?.spent ? "rotate(45deg)" : "rotate(0deg)",
+                  boxShadow: "0 0 6px rgba(0,255,255,0.25)",
+                }}
+              />
             </div>
-          </div>
-        );
-      }
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
     function TrashZone({ trash = [], borderColor }) {
     const topCard = trash[trash.length - 1];
@@ -309,12 +324,25 @@
 
 
             {/* HEADER */}
-            <div className="flex justify-between mb-2 text-xs">
-              <span style={{ color: borderColor }}>
-                {playerLabel || (isOpponent ? "Player 2" : "Player 1")}
-              </span>
-              <span style={{ color: "#00ffff" }}>★ {streetCred}</span>
-            </div>
+<div className="relative mb-2 h-8">
+  <span
+  className="absolute font-orbitron text-2xl tracking-widest drop-shadow-[0_0_8px_rgba(0,255,255,0.8)]"
+  style={{
+    color: borderColor,
+    left: "45px",   // ← move left/right
+    top: "10px",    // ← move up/down
+  }}
+>
+  {playerLabel || (isOpponent ? "Player 2" : "Player 1")}
+</span>
+
+  <span
+    className="absolute right-[69px] top-[11px] font-orbitron text-2xl font-black tracking-wider drop-shadow-[0_0_8px_rgba(0,255,255,0.8)]"
+    style={{ color: "#00ffff" }}
+  >
+    ★{streetCred}
+  </span>
+</div>
 
             <div className="grid grid-cols-12 gap-3">
 
@@ -457,28 +485,29 @@
       </div>
 
   {/* PLAYER 2 DECK BOX */}
-  <div
-    style={{
-      position: "relative",
-      top: `calc(3px + ${deckY})`,
-      left: `calc(32px + ${deckX})`,
-    }}
-  >
+<div
+  style={{
+    position: "absolute",
+    top: "79px",
+    right: "66px",
+    zIndex: 5,
+  }}
+>
     <DeckZone
       deck={player.deck || []}
       borderColor={borderColor}
     />
   </div>
 
-  {/* PLAYER 2 trash */}
-
-  <div
-    style={{
-      position: "relative",
-      top: `calc(210px + ${trashY})`,
-      left: `calc(487px + ${trashX})`,
-    }}
-  >
+  {/* PLAYER 2 TRASH BOX */}
+<div
+  style={{
+    position: "absolute",
+    top: "230px",
+    right: "65px",
+    zIndex: 5,
+  }}
+>
     <TrashZone
       trash={player.trash || []}
       borderColor={borderColor}
@@ -626,13 +655,14 @@
       </div>
 
   {/* PLAYER 1 DECK BOX */}
-  <div
-    style={{
-      position: "relative",
-      top: `calc(-216px + ${deckY})`,
-      left: `calc(23px + ${deckX})`,
-    }}
-  >
+<div
+  style={{
+    position: "absolute",
+    top: "73px",
+    right: "63px",
+    zIndex: 5,
+  }}
+>
     <DeckZone
       deck={player.deck || []}
       borderColor={borderColor}
@@ -640,13 +670,14 @@
   </div>
 
     {/* PLAYER 1 TRASH BOX */}
-  <div
-    style={{
-      position: "relative",
-      top: `calc(-22px + ${trashY})`,
-      left: `calc(475px + ${trashX})`,
-    }}
-  >
+<div
+  style={{
+    position: "absolute",
+    top: "220px",
+    right: "63px",
+    zIndex: 5,
+  }}
+>
 
 
     

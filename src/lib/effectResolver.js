@@ -7,6 +7,18 @@ function uid() {
   return Math.random().toString(36).slice(2);
 }
 
+function updateStreetCred(s) {
+  s.player.streetCred = (s.player.gigDice || []).reduce(
+    (total, gig) => total + (gig.value || 0),
+    0
+  );
+
+  s.opponent.streetCred = (s.opponent.gigDice || []).reduce(
+    (total, gig) => total + (gig.value || 0),
+    0
+  );
+}
+
 // =========================
 // PROGRAM EFFECTS
 // =========================
@@ -122,6 +134,7 @@ export function resolveGigBoost(state, gigId, amount) {
   if (!gig) return s;
   gig.value = Math.min(gig.value + amount, gig.sides);
   log(s, `     Gig boosted to ${gig.value}`);
+  updateStreetCred(s);
   return s;
 }
 
@@ -283,12 +296,16 @@ function runAction(action, ctx, actions = [], index = 0) {
       break;
 
     case "CHOOSE_FRIENDLY_GIG":
-      ctx.setPendingProgram?.({
-        type: "chooseFriendlyGig",
-        player: ctx.player,
-        remainingActions: actions.slice(index + 1)
-      });
-      return "PAUSE";
+  if (ctx.gigId) {
+    break;
+  }
+
+  ctx.setPendingProgram?.({
+    type: "chooseFriendlyGig",
+    player: ctx.player,
+    remainingActions: actions.slice(index + 1)
+  });
+  return "PAUSE";
 
     case "CHOOSE_RIVAL_GIG":
       ctx.setPendingProgram?.({

@@ -285,18 +285,27 @@ import { resolveEffect } from "@/lib/effectResolver";
     description="Choose a Gig to increase by +4."
     amount={4}
     onChoose={(gigId) => {
-    setGs(prev => {
-    const updated = structuredClone(prev);
-    const gig = updated.player.gigDice.find(g => g.id === gigId);
-    if (gig) {
-      gig.value = Math.min(gig.sides, (gig.value || 0) + 4);
-    }
-    return updated;
-  });
+      const newGs = structuredClone(gs);
+      const p = newGs.player;
+      const card = p.hand[pendingProgram.cardIndex];
 
-  setPendingProgram(null);
-  setactualIndex(null);
-}}
+      if (card?.effectData) {
+        resolveEffect(card.effectData, {
+          state: newGs,
+          player: "player",
+          gigId
+        });
+      }
+
+      const [removed] = p.hand.splice(pendingProgram.cardIndex, 1);
+      p.trash.push(removed);
+
+      setGs(newGs);
+      setPendingProgram(null);
+      setactualIndex(null);
+
+      if (isMultiplayer) mpSave(newGs);
+    }}
     onClose={() => setPendingProgram(null)}
   />
 )}
