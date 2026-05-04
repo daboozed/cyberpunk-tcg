@@ -285,25 +285,12 @@ import { resolveEffect } from "@/lib/effectResolver";
     description="Choose a Gig to increase by +4."
     amount={4}
     onChoose={(gigId) => {
-  console.log("CHOSEN gigId:", gigId);
-  console.log("CURRENT GIGS:", gs.player.gigDice);
-
-  const found = gs.player.gigDice.find(g => g.id === gigId);
-  console.log("FOUND GIG:", found);
-
-  setGs(prev => {
+    setGs(prev => {
     const updated = structuredClone(prev);
-
-    console.log("PRE UPDATE:", updated.player.gigDice);
-
     const gig = updated.player.gigDice.find(g => g.id === gigId);
-
     if (gig) {
       gig.value = Math.min(gig.sides, (gig.value || 0) + 4);
     }
-
-    console.log("POST UPDATE:", updated.player.gigDice);
-
     return updated;
   });
 
@@ -314,7 +301,6 @@ import { resolveEffect } from "@/lib/effectResolver";
   />
 )}
         
-  {/* AFTERPARTY */}
   {/* AFTERPARTY */}
 {pendingProgram?.effect === "p4" && (
   <AdjustGigModal
@@ -347,7 +333,6 @@ import { resolveEffect } from "@/lib/effectResolver";
   />
 )}
 
-  {/* REBOOT OPTICS */}
   {/* REBOOT OPTICS */}
 {pendingProgram?.effect === "p1" && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -403,7 +388,6 @@ import { resolveEffect } from "@/lib/effectResolver";
   </div>
 )}
 
-  {/* CYBERPSYCHOSIS */}
   {/* CYBERPSYCHOSIS */}
 {pendingProgram?.effect === "p5" && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -461,7 +445,6 @@ import { resolveEffect } from "@/lib/effectResolver";
 )}
 
   {/* CORPORATE SURVEILLANCE */}
-  {/* CORPORATE SURVEILLANCE */}
 {pendingProgram?.effect === "p7" && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
     <div className="bg-card border border-green-500 rounded-xl p-6 max-w-lg w-full mx-4">
@@ -517,7 +500,6 @@ import { resolveEffect } from "@/lib/effectResolver";
   </div>
 )}
 
-        {/* FLOOR IT */}
         {/* FLOOR IT */}
 {showFloorItModal && (
   <FloorItModal
