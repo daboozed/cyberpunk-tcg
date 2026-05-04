@@ -75,6 +75,18 @@ import { resolveEffect } from "../effectResolver";
     s.gameLog.push({msg,time:Date.now()});
   }
 
+  function updateStreetCred(s) {
+  s.player.streetCred = (s.player.gigDice || []).reduce(
+    (total, gig) => total + (gig.value || 0),
+    0
+  );
+
+  s.opponent.streetCred = (s.opponent.gigDice || []).reduce(
+    (total, gig) => total + (gig.value || 0),
+    0
+  );
+}
+
   // =========================
   // SETUP
   // =========================
@@ -231,6 +243,7 @@ import { resolveEffect } from "../effectResolver";
   }
 
   p.gigDice.push(newDie);
+  updateStreetCred(s);
 
   log(s, `     Rolled ${newDie.label} → ${finalValue}`);
 

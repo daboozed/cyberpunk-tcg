@@ -285,36 +285,31 @@ import { resolveEffect } from "@/lib/effectResolver";
     description="Choose a Gig to increase by +4."
     amount={4}
     onChoose={(gigId) => {
-  console.log("CHOSEN gigId:", gigId);
-  console.log("CURRENT GIGS:", gs.player.gigDice);
+      const newGs = structuredClone(gs);
+      const p = newGs.player;
+      const card = p.hand[pendingProgram.cardIndex];
 
-  const found = gs.player.gigDice.find(g => g.id === gigId);
-  console.log("FOUND GIG:", found);
+      if (card?.effectData) {
+        resolveEffect(card.effectData, {
+          state: newGs,
+          player: "player",
+          gigId
+        });
+      }
 
-  setGs(prev => {
-    const updated = structuredClone(prev);
+      const [removed] = p.hand.splice(pendingProgram.cardIndex, 1);
+      p.trash.push(removed);
 
-    console.log("PRE UPDATE:", updated.player.gigDice);
+      setGs(newGs);
+      setPendingProgram(null);
+      setactualIndex(null);
 
-    const gig = updated.player.gigDice.find(g => g.id === gigId);
-
-    if (gig) {
-      gig.value = Math.min(gig.sides, (gig.value || 0) + 4);
-    }
-
-    console.log("POST UPDATE:", updated.player.gigDice);
-
-    return updated;
-  });
-
-  setPendingProgram(null);
-  setactualIndex(null);
-}}
+      if (isMultiplayer) mpSave(newGs);
+    }}
     onClose={() => setPendingProgram(null)}
   />
 )}
         
-  {/* AFTERPARTY */}
   {/* AFTERPARTY */}
 {pendingProgram?.effect === "p4" && (
   <AdjustGigModal
@@ -347,7 +342,6 @@ import { resolveEffect } from "@/lib/effectResolver";
   />
 )}
 
-  {/* REBOOT OPTICS */}
   {/* REBOOT OPTICS */}
 {pendingProgram?.effect === "p1" && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -403,7 +397,6 @@ import { resolveEffect } from "@/lib/effectResolver";
   </div>
 )}
 
-  {/* CYBERPSYCHOSIS */}
   {/* CYBERPSYCHOSIS */}
 {pendingProgram?.effect === "p5" && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -461,7 +454,6 @@ import { resolveEffect } from "@/lib/effectResolver";
 )}
 
   {/* CORPORATE SURVEILLANCE */}
-  {/* CORPORATE SURVEILLANCE */}
 {pendingProgram?.effect === "p7" && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
     <div className="bg-card border border-green-500 rounded-xl p-6 max-w-lg w-full mx-4">
@@ -517,7 +509,6 @@ import { resolveEffect } from "@/lib/effectResolver";
   </div>
 )}
 
-        {/* FLOOR IT */}
         {/* FLOOR IT */}
 {showFloorItModal && (
   <FloorItModal
