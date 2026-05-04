@@ -65,17 +65,17 @@ export default function Home() {
 
         {/* ================= TITLE HUD ================= */}
         <div className="absolute left-[25px] top-[25px] leading-none uppercase tracking-tight">
-          <h1 className="text-[50px] font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-gray-300 to-gray-600 drop-shadow-[0_4px_12px_rgba(0,0,0,.8)]">
+          <h1 className="text-[34px] md:text-[50px] font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-gray-300 to-gray-600 drop-shadow-[0_4px_12px_rgba(0,0,0,.8)]">
             BUILD YOUR CREW.
           </h1>
 
-          <h1 className="text-[50px] font-black mt-1 text-transparent bg-clip-text bg-gradient-to-b from-red-400 via-red-600 to-red-900 drop-shadow-[0_4px_12px_rgba(0,0,0,.8)]">
+          <h1 className="text-[34px] md:text-[50px] font-black mt-1 text-transparent bg-clip-text bg-gradient-to-b from-red-400 via-red-600 to-red-900 drop-shadow-[0_4px_12px_rgba(0,0,0,.8)]">
             OWN NIGHT CITY.
           </h1>
         </div>
 
         {/* ================= CARD SHOWCASE ================= */}
-        <div className="absolute left-[80px] top-[325px]">
+        <div className="hidden md:block absolute left-[80px] top-[325px]">
           <div className="relative w-[460px] h-[280px]">
 
             {/* LEFT CARD */}
@@ -106,7 +106,7 @@ export default function Home() {
         </div>
 
         {/* ================= MAIN MENU PANEL ================= */}
-        <div className="absolute right-[420px] top-[120px] w-[360px] bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
+        <div className="absolute left-1/2 top-[220px] w-[calc(100%-32px)] max-w-[360px] -translate-x-1/2 bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl md:left-auto md:right-[420px] md:top-[120px] md:w-[360px] md:translate-x-0">
 
           <div className="p-4 border-b border-white/10 text-center">
             <h2 className="text-sm font-bold tracking-widest">
