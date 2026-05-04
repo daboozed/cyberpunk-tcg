@@ -1,1 +1,0 @@
-export default function CardDatabase(){return <div className='panel'>Search Cards • Filters • Rarity</div>}
