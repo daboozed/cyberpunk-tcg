@@ -7,7 +7,6 @@ import {
   calcPower
 } from "./EconomyEngine";
    
-//import { ProgramResolver } from "../programResolver";
 export { resolveGigBoost } from "../effectResolver";
 import { resolveLegendFlip } from "../legendFlipResolver";
 import { resolveEffect } from "../effectResolver";
@@ -308,17 +307,24 @@ const cost = card.cost ?? 0;
   p.hand.splice(cardIndex,1);
 
   // ================= PROGRAM =================
- if (card.type === "program") {
+if (card.type === "program") {
   log(s, `     Played ${card.name}`);
 
-  if (card.effect) {
-    resolveEffect(card.effect, {
+  const cost = card.cost ?? 0;
+
+  if (getAvailableEddies(p) + getAvailableLegendEddies(p) < cost) {
+    return s;
+  }
+
+  spendEddies(p, cost);
+  p.hand.splice(cardIndex, 1);
+
+  if (card.effectData) {
+    resolveEffect(card.effectData, {
       state: s,
       player: "player",
       targetUid
     });
-  } else {
-    ProgramResolver.resolveProgram(s, card.id, targetUid);
   }
 
   p.trash.push(card);
@@ -370,10 +376,14 @@ export function resolvePendingEffect(state, targetUid){
   spendEddies(p,cost);
   const [removedCard] = p.hand.splice(cardIndex,1);
 
-  // Resolve program effect using the new resolver
-  if (card.type === 'program') {
-    ProgramResolver.resolveProgram(s, card.id, targetUid);
-  }
+  // Resolve program effect using effectData
+if (card.type === 'program' && card.effectData) {
+  resolveEffect(card.effectData, {
+    state: s,
+    player,
+    targetUid
+  });
+}
 
   p.trash.push(removedCard);
   s.pendingEffect = null;
@@ -517,7 +527,11 @@ if(card.id==="p7"){
 const target = enemy.field.filter(u=>(u.cost||0)<=3).sort((a,b)=>power(b)-power(a))[0];
 if(target){
 spendAI(card.cost||0);
-ProgramResolver.resolveProgram(s,"p7",target.uid);
+resolveEffect(card.effectData, {
+  state: s,
+  player: "opponent",
+  targetUid: target.uid
+});
 playToTrash(card);
 log(s,`Player 2 plays ${card.name}`);
 }
@@ -529,7 +543,11 @@ for(const card of playablePrograms()){
 if(card.id==="p3" && p.gigDice.length){
 const bestGig = p.gigDice.slice().sort((a,b)=>b.value-a.value)[0];
 spendAI(card.cost||0);
-ProgramResolver.resolveProgram(s,"p3",bestGig.id);
+resolveEffect(card.effectData, {
+  state: s,
+  player: "opponent",
+  gigId: bestGig.id
+});
 playToTrash(card);
 log(s,`Player 2 plays ${card.name}`);
 }
@@ -541,7 +559,11 @@ if(card.id==="p1"){
 const target = p.field.filter(u=>!u.spent).sort((a,b)=>power(b)-power(a))[0];
 if(target){
 spendAI(card.cost||0);
-ProgramResolver.resolveProgram(s,"p1",target.uid);
+resolveEffect(card.effectData, {
+  state: s,
+  player: "opponent",
+  targetUid: target.uid
+});
 playToTrash(card);
 log(s,`Player 2 plays ${card.name}`);
 }
@@ -554,7 +576,11 @@ if(card.id==="p5"){
 const target = p.field.filter(u=>(u.gear||[]).length>0).sort((a,b)=>power(b)-power(a))[0];
 if(target){
 spendAI(card.cost||0);
-ProgramResolver.resolveProgram(s,"p5",target.uid);
+resolveEffect(card.effectData, {
+  state: s,
+  player: "opponent",
+  targetUid: target.uid
+});
 playToTrash(card);
 log(s,`Player 2 plays ${card.name}`);
 }
@@ -567,7 +593,11 @@ if(card.id==="p2"){
 const target = enemy.field.filter(u=>u.spent && (u.cost||0)<=4)[0];
 if(target){
 spendAI(card.cost||0);
-ProgramResolver.resolveProgram(s,"p2",target.uid);
+resolveEffect(card.effectData, {
+  state: s,
+  player: "opponent",
+  targetUid: target.uid
+});
 playToTrash(card);
 log(s,`Player 2 plays ${card.name}`);
 }
@@ -579,7 +609,11 @@ for(const card of playablePrograms()){
 if(card.id==="p4" && enemy.gigDice.length){
 const target = enemy.gigDice.reduce((best,g,i)=>g.value>enemy.gigDice[best].value?i:best,0);
 spendAI(card.cost||0);
-ProgramResolver.resolveProgram(s,"p4",{gigIndex:target,adjustment:-2});
+resolveEffect(card.effectData, {
+  state: s,
+  player: "opponent",
+  gigId: enemy.gigDice[target]?.id
+});
 playToTrash(card);
 log(s,`Player 2 plays ${card.name}`);
 }
