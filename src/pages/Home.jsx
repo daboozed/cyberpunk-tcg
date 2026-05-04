@@ -83,7 +83,7 @@ export default function Home() {
 
 <div className="heroTitle">
   <h1>BUILD YOUR CREW.</h1>
-  <h2>OWN NIGHT CITY.</h2>
+  <h2>2OWN2 NIGHT CITY.</h2>
 </div>
 
 <div className="heroLeft">
