@@ -65,11 +65,11 @@ export default function Home() {
 
         {/* ================= TITLE HUD ================= */}
         <div className="absolute left-[25px] top-[25px] leading-none uppercase tracking-tight">
-          <h1 className="text-[50px] font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-gray-300 to-gray-600 drop-shadow-[0_4px_12px_rgba(0,0,0,.8)]">
+          <h1 className="text-[34px] md:text-[50px] font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-gray-300 to-gray-600 drop-shadow-[0_4px_12px_rgba(0,0,0,.8)]">
             BUILD YOUR CREW.
           </h1>
 
-          <h1 className="text-[50px] font-black mt-1 text-transparent bg-clip-text bg-gradient-to-b from-red-400 via-red-600 to-red-900 drop-shadow-[0_4px_12px_rgba(0,0,0,.8)]">
+          <h1 className="text-[34px] md:text-[50px] font-black mt-1 text-transparent bg-clip-text bg-gradient-to-b from-red-400 via-red-600 to-red-900 drop-shadow-[0_4px_12px_rgba(0,0,0,.8)]">
             OWN NIGHT CITY.
           </h1>
         </div>
