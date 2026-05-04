@@ -1,0 +1,13 @@
+:root{--bg:#05080D;--panel:#0A1018;--cyan:#00F0FF;--red:#FF2A55;--gold:#FFD400;--text:#fff}
+body{margin:0;background:radial-gradient(circle at top right,#122,#05080D 55%);color:var(--text);font-family:Arial,sans-serif}
+.page{min-height:100vh;padding:24px}
+.nav{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,240,255,.2);padding-bottom:14px}
+.brand{font-size:30px;color:var(--red);font-weight:800}
+.menu{display:flex;gap:18px}.menu a:hover{color:var(--cyan)}
+.heroWrap{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;padding-top:70px}
+h1,h2{margin:0;font-size:64px;line-height:1} h2{color:var(--red)}
+.panel{background:rgba(10,16,24,.92);padding:24px;border-radius:14px;border:1px solid rgba(0,240,255,.18)}
+.btn{background:transparent;color:var(--cyan);border:1px solid var(--cyan);padding:10px 18px;border-radius:8px}
+.big{padding:14px 28px}
+@media(max-width:900px){.heroWrap{grid-template-columns:1fr}h1,h2{font-size:42px}}
+

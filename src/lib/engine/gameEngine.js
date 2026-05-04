@@ -7,7 +7,7 @@ import {
   calcPower
 } from "./EconomyEngine";
    
-import { ProgramResolver } from "../programResolver";
+//import { ProgramResolver } from "../programResolver";
 export { resolveGigBoost } from "../effectResolver";
 import { resolveLegendFlip } from "../legendFlipResolver";
 import { resolveEffect } from "../effectResolver";

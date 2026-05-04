@@ -1,8 +1,8 @@
-import { getProgramEffect } from './programEffectData';
+import { PROGRAMS_POOL } from '@/lib/cardPool';
 
 export class ProgramResolver {
   static resolveProgram(state, cardId, targetUid = null) {
-    const effect = getProgramEffect(cardId);
+    const effect = this.getProgramEffect(cardId);
     if (!effect) return state;
 
     const s = structuredClone(state);
@@ -18,8 +18,13 @@ export class ProgramResolver {
 
     // Execute each action in sequence
     for (const action of effect.actions) {
-      this.executeAction(s, action, p, opp, target);
-    }
+  this.executeAction(s, action, p, opp, target);
+
+  // 🧠 NEW: interrupt flow if we enter spend mode
+  if (s.pendingSpend) {
+    return s;
+  }
+}
 
     // Evaluate conditional (if/then)
     if (effect.conditional) {
@@ -156,6 +161,14 @@ export class ProgramResolver {
         target.spent = true;
       }
     }
+
+if (type === 'enterSpendMode') {
+  state.pendingSpend = {
+    targets: action.targets || 'friendlyUnit',
+    filter: action.filter || null,
+    source: action.source || null
+  };
+}
 
     if (type === 'drawCard') {
       if (player.deck.length > 0) {

@@ -1,0 +1,1 @@
+export default function Matchmaking(){return <div className='panel'>Searching for Ranked Match...</div>}

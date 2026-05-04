@@ -1,0 +1,46 @@
+import { useState } from "react";
+
+export default function TestDice() {
+  const [value, setValue] = useState(1);
+  const [rolling, setRolling] = useState(false);
+
+  const roll = () => {
+    if (rolling) return;
+
+    setRolling(true);
+
+    let ticks = 0;
+    let interval = setInterval(() => {
+      const next = Math.floor(Math.random() * 6) + 1;
+      setValue(next);
+      ticks++;
+
+      if (ticks > 20) {
+        clearInterval(interval);
+
+        const final = Math.floor(Math.random() * 6) + 1;
+        setValue(final);
+        setRolling(false);
+      }
+    }, 80);
+  };
+
+  return (
+    <div
+      onClick={roll}
+      style={{
+        width: 80,
+        height: 80,
+        border: "2px solid cyan",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 32,
+        cursor: "pointer",
+        userSelect: "none",
+      }}
+    >
+      {value}
+    </div>
+  );
+}
