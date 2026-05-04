@@ -105,6 +105,7 @@ export default function Home() {
           </div>
         </div>
 
+<<<<<<< HEAD
         {/* ================= MAIN MENU PANEL ================= */}
         <div className="absolute right-[180px] top-[120px] w-[360px] bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl">
 
@@ -170,6 +171,108 @@ export default function Home() {
 
           <div className="text-[10px] text-center text-white/30 py-3 border-t border-white/10">
             Fan-made Cyberpunk TCG simulator
+=======
+        {/* Main Panel */}
+        <div className="w-full max-w-sm bg-card/80 backdrop-blur-md border border-border/60 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
+
+  <div className="bg-muted/60 px-6 py-4 border-b border-border/40 text-center">
+    <h2 className="font-orbitron text-base sm:text-lg font-bold text-foreground tracking-wider">
+      ENTER NEON CITY
+    </h2>
+
+    <p className="font-rajdhani text-xs text-muted-foreground mt-0.5">
+      Neon City Duel — Fan-made Simulator for the Cyberpunk TCG
+    </p>
+  </div>
+
+  <div className="p-4 space-y-3">
+
+    <button
+      onClick={() => {
+        window.open(
+          "http://localhost:3001/auth/discord",
+          "discordLogin",
+          "width=520,height=720"
+        );
+      }}
+      className="btn w-full"
+    >
+      Login With Discord
+    </button>
+
+    {deckLoaded && (
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/30">
+        <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+        <span className="text-xs font-mono text-green-400 truncate">
+          Deck loaded: {loadedDeckName || "Custom Deck"}
+        </span>
+      </div>
+    )}
+
+    <button
+      disabled={!deckLoaded}
+      onClick={startQuickplay}
+      className={`w-full h-11 flex items-center justify-center gap-3 rounded-xl font-rajdhani font-semibold text-sm tracking-wider transition-all duration-200
+      ${deckLoaded
+        ? "bg-muted/30 border border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+        : "bg-muted/20 border border-border/30 text-muted-foreground/40 cursor-not-allowed"}`}
+    >
+      <Cpu className="w-4 h-4" />
+      Quickplay - AI
+    </button>
+
+    <Link to="/deckbuilder" className="block">
+      <button className="w-full h-11 flex items-center justify-center gap-3 rounded-xl font-rajdhani font-semibold text-sm tracking-wider transition-all duration-200 bg-muted/30 border border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground">
+        <Layers className="w-4 h-4" />
+        Deck Builder
+      </button>
+    </Link>
+
+    <button
+      onClick={() => setShowLoadDeck(true)}
+      className="w-full h-11 flex items-center justify-center gap-3 rounded-xl font-rajdhani font-semibold text-sm tracking-wider transition-all duration-200 bg-muted/30 border border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+    >
+      <FolderOpen className="w-4 h-4" />
+      Load Deck
+    </button>
+
+  </div>
+
+  <p className="py-3 text-[10px] text-muted-foreground/40 font-mono text-center border-t border-border/20">
+    Fan-made simulator · Not affiliated with CD Projekt Red
+  </p>
+
+</div>
+
+        {/* Rules Panel */}
+        <div className="w-full max-w-2xl bg-card/70 backdrop-blur-md border border-primary/20 rounded-2xl p-4 sm:p-6 mb-8">
+          <h2 className="font-orbitron text-base font-bold text-primary tracking-wider mb-4">HOW TO PLAY</h2>
+
+          <div className="mb-4 p-3 rounded-xl border border-primary/20 bg-primary/5">
+            <h3 className="font-orbitron text-xs font-bold text-primary mb-2">GAME SETUP</h3>
+            <ul className="space-y-1 text-xs font-rajdhani text-foreground/80">
+              <li>• Each player has 3 face-down Legends, a shuffled deck between 40-50 cards with no more then 3 of the same card, and 6 Gig Dice in the Fixer Area (d4, d6, d8, d10, d12, d20).</li>
+              <li>• Draw 6 cards. You may mulligan once (shuffle back and redraw 6).</li>
+              <li>• Randomly choose who goes first. First player spends 2 of their Legends.</li>
+              <li>• The d20 must always be the last die taken from the Fixer Area.</li>
+            </ul>
+          </div>
+
+          <div className="space-y-2">
+            {SECTIONS.map((section) => (
+              <div key={section.title} className={`p-3 rounded-xl border ${section.border} bg-card/50`}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <section.icon className={`w-3.5 h-3.5 ${section.color}`} />
+                  <h3 className={`font-orbitron text-xs font-bold ${section.color}`}>{section.title}</h3>
+                </div>
+                <ul className="space-y-1">
+                  {section.content.map((line, j) => (
+                    <li key={j} className="text-xs font-rajdhani text-foreground/75 leading-relaxed">• {line}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+>>>>>>> dev
           </div>
         </div>
 
@@ -188,3 +291,4 @@ export default function Home() {
     </div>
   );
 }
+
