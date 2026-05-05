@@ -164,14 +164,14 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
     );
   }
 
-      function FieldArea({ field, borderColor, selectedAttacker, onFieldUnitClick, phase }) {
+      function FieldArea({ field, borderColor, selectedAttacker, targetingGlow, onFieldUnitClick, phase }) {
       const isAttackPhase = phase === PHASES.ATTACK;
 
       return (
         <div
-            className={cn("w-full max-w-[500px] flex flex-wrap justify-start gap-2 p-2 rounded-lg transition-all",
-            selectedAttacker && "ring-2 ring-red-500 animate-pulse"
-    )}
+            className={cn(
+  "w-full max-w-[500px] flex flex-wrap justify-start gap-2 p-2 rounded-lg transition-all",
+)}
           style={{ border: `1px dashed ${borderColor}`, minHeight: "100px" }}
         >
           {(field || []).length === 0 ? (
@@ -205,7 +205,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
 
           <UnitWithGear
             unit={unit}
-            selected={selectedAttacker === unit.uid}
+            selected={targetingGlow}
             onClick={() => onFieldUnitClick?.(unit)}
           />
         </div>
@@ -218,8 +218,9 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
       export default function PlayerArea({
         player,
         isOpponent = false,
-        phase, // 🔥 ADD THIS
+        phase, 
         onLegendClick,
+        pendingProgram,
         onFieldUnitClick,
         disableDice = false,
         onFixerDieClick,  
@@ -253,6 +254,10 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
     isAttackPhase &&
     hasAttacker &&
     (hasUnitTargets || hasGigTargets);
+
+    const isFriendlyUnitTargeting =
+  !isOpponent &&
+  pendingProgram?.targetType === "friendlyUnit";
       
       const borderColor =
         isOpponent ? "#ff3366" : "#00ffff";
@@ -581,13 +586,14 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
       left: "100px",   // move left/right
     }}
   >
-    <FieldArea
-      field={player.field}
-      borderColor={borderColor}
-      selectedAttacker={selectedAttacker}
-      onFieldUnitClick={onFieldUnitClick}
-      phase={phase}
-    />
+      <FieldArea
+        field={player.field}
+        borderColor={borderColor}
+        selectedAttacker={selectedAttacker}
+        targetingGlow={pendingProgram?.targetType === "friendlyUnit"}
+        onFieldUnitClick={onFieldUnitClick}
+        phase={phase}
+      />
   </div>
                     <div className="flex items-start gap-3">
 

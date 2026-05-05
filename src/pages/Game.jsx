@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { fetchCards } from "../data/cardService";
 import { base44 } from "@/api/base44Client";
+import { resolveEffect } from "@/lib/effectResolver";
 import GameModals from "@/components/game/GameModals";
 import {
   createInitialState,
@@ -410,12 +411,24 @@ const die = side?.fixerArea?.[index];
   }
 
   // PROGRAMS
-  if (card.type === 'program' && card.id === 'p1') {
-    setPendingProgram({ card, cardIndex: index });
+  if (card.type === "program" && card.id === "p1") {
+  // TOGGLE OFF if already targeting
+  if (pendingProgram?.targetType === "friendlyUnit") {
+    setPendingProgram(null);
     return;
   }
 
-  if (card.type === 'program' && card.id === 'p2') {
+  // TOGGLE ON
+  setPendingProgram({
+    card,
+    cardIndex: index,
+    targetType: "friendlyUnit"
+  });
+
+  return;
+}
+
+   if (card.type === 'program' && card.id === 'p2') {
     const friendlySpent = gs.player.field.filter(u => u.spent && (u.cost || 0) <= 4);
     const rivalSpent = gs.opponent.field.filter(u => u.spent && (u.cost || 0) <= 4);
     if (friendlySpent.length === 0 && rivalSpent.length === 0) return;
@@ -459,7 +472,7 @@ const die = side?.fixerArea?.[index];
 
   if (isMultiplayer) mpSave(newGs);
 
-}, [gs, isMultiplayer, mpSave]);
+}, [gs, pendingProgram, isMultiplayer, mpSave]);
 
   const handleCallLegend = useCallback((index) => {
   if (gs.phase !== PHASES.PLAY) return;
@@ -492,21 +505,48 @@ const die = side?.fixerArea?.[index];
   const canCallSolo = callableSoloLegend !== -1 && !disableActions;
 
   const handleFieldUnitClick = useCallback((unit) => {
-    if (gearTarget !== null && gs.phase === PHASES.PLAY) {
-      const newGs = playCard(gs, gearTarget, unit.uid);
-      setGs(newGs);
-      setGearTarget(null);
-      setactualIndex(null);
-      if (isMultiplayer) mpSave(newGs);
-      return;
-    }
-    if (gs.phase === PHASES.ATTACK || gs.phase === PHASES.PLAY) {
-      if (!unit.spent) {
-        setSelectedAttacker(prev => prev === unit.uid ? null : unit.uid);
-        setactualIndex(null);
-      }
-    }
-  }, [gs, gearTarget, isMultiplayer, mpSave]);
+  // Gear targeting
+  if (gearTarget !== null && gs.phase === PHASES.PLAY) {
+    const newGs = playCard(gs, gearTarget, unit.uid);
+    setGs(newGs);
+    setGearTarget(null);
+    setactualIndex(null);
+    setSelectedAttacker(null);
+
+    if (isMultiplayer) mpSave(newGs);
+    return;
+  }
+
+  // Friendly unit targeting
+  if (pendingProgram?.targetType === "friendlyUnit") {
+  const newGs = structuredClone(gs);
+  const p = newGs.player;
+  const card = p.hand[pendingProgram.cardIndex];
+
+  if (card?.effectData) {
+    resolveEffect(card.effectData, {
+      state: newGs,
+      player: "player",
+      targetUid: unit.uid
+    });
+  }
+
+  const [removed] = p.hand.splice(pendingProgram.cardIndex, 1);
+  p.trash.push(removed);
+
+  setGs(newGs);
+  setPendingProgram(null);
+  setactualIndex(null);
+  setSelectedAttacker(null);
+
+  if (isMultiplayer) mpSave(newGs);
+  return;
+}
+
+  // No unit-click glow anymore
+  setSelectedAttacker(null);
+  setactualIndex(null);
+  }, [gs, gearTarget, pendingProgram, isMultiplayer, mpSave]);
 
   const handleOpponentFieldClick = useCallback((unit) => {
 
@@ -942,6 +982,7 @@ return (
     <PlayerArea
       player={gs.player}
       phase={gs.phase}
+      pendingProgram={pendingProgram}
       rolledThisTurn={rolledThisTurn}
       onLegendClick={!disableActions ? handleCallLegend : () => {}}
       onFieldUnitClick={!disableActions ? handleFieldUnitClick : () => {}}

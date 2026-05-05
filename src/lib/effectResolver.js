@@ -264,8 +264,9 @@ function resolveLegendTrigger(effect, ctx) {
 function runAction(action, ctx, actions = [], index = 0) {
   switch (action) {
     case "BUFF_FRIENDLY_UNIT_4_THIS_TURN":
+    case "BUFF_SELECTED_UNIT_4_THIS_TURN":
       resolveRebootOptics(ctx.state, ctx.targetUid);
-      break;
+    break;
 
     case "BOOST_SELECTED_GIG_4": {
   const targetId =
@@ -316,12 +317,15 @@ function runAction(action, ctx, actions = [], index = 0) {
       return "PAUSE";
 
     case "CHOOSE_FRIENDLY_UNIT":
-      ctx.setPendingProgram?.({
-        type: "chooseFriendlyUnit",
-        player: ctx.player,
-        remainingActions: actions.slice(index + 1)
-      });
-      return "PAUSE";
+  if (ctx.targetUid) {
+    break;
+  }
+  ctx.setPendingProgram?.({
+    type: "chooseFriendlyUnit",
+    player: ctx.player,
+    remainingActions: actions.slice(index + 1)
+  });
+  return "PAUSE";
 
     case "CHOOSE_SPENT_UNIT_MAX_4":
       ctx.setPendingProgram?.({
