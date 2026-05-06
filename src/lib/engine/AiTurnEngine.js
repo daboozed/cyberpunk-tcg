@@ -56,6 +56,14 @@ function playToTrash(player, card) {
   player.trash.push(card);
 }
 
+function getPlayableCards(player) {
+  return (player.hand || []).filter(card => (card.cost || 0) <= getAvailableAiEddies(player));
+}
+
+function getPlayablePrograms(player) {
+  return getPlayableCards(player).filter(card => card.type === "program");
+}
+
 function rollHighestAvailableFixerDie(s, player) {
   if (!Array.isArray(player.fixerArea) || player.fixerArea.length === 0) return;
 
@@ -75,7 +83,7 @@ function rollHighestAvailableFixerDie(s, player) {
 }
 
 function sellIfDeadHand(s, player) {
-  const playable = player.hand.filter(card => (card.cost || 0) <= getAvailableAiEddies(player));
+  const playable = getPlayableCards(player);
   if (playable.length > 0) return;
 
   const sell = player.hand
@@ -87,6 +95,120 @@ function sellIfDeadHand(s, player) {
   removeFromHand(player, sell);
   player.eddies.push({ id: uid(), spent: false });
   log(s, `Player 2 sells ${sell.name}`);
+}
+
+function playAiProgramCard(s, card, targetContext = {}) {
+  const player = s.opponent;
+
+  spendAiEddies(player, card.cost || 0);
+
+  resolveEffect(card.effectData, {
+    state: s,
+    player: "opponent",
+    ...targetContext,
+  });
+
+  playToTrash(player, card);
+  log(s, `Player 2 plays ${card.name}`);
+}
+
+function playAiRemovalPrograms(s) {
+  const player = s.opponent;
+  const enemy = s.player;
+
+  for (const card of getPlayablePrograms(player)) {
+    if (card.id !== "p7") continue;
+
+    const target = enemy.field
+      .filter(unit => (unit.cost || 0) <= 3)
+      .sort((a, b) => getPower(b) - getPower(a))[0];
+
+    if (!target) continue;
+
+    playAiProgramCard(s, card, { targetUid: target.uid });
+  }
+}
+
+function playAiGigBoostPrograms(s) {
+  const player = s.opponent;
+
+  for (const card of getPlayablePrograms(player)) {
+    if (card.id !== "p3" || !player.gigDice.length) continue;
+
+    const bestGig = player.gigDice.slice().sort((a, b) => b.value - a.value)[0];
+    playAiProgramCard(s, card, { gigId: bestGig.id });
+  }
+}
+
+function playAiBuffPrograms(s) {
+  const player = s.opponent;
+
+  for (const card of getPlayablePrograms(player)) {
+    if (card.id !== "p1") continue;
+
+    const target = player.field
+      .filter(unit => !unit.spent)
+      .sort((a, b) => getPower(b) - getPower(a))[0];
+
+    if (!target) continue;
+
+    playAiProgramCard(s, card, { targetUid: target.uid });
+  }
+}
+
+function playAiGearComboPrograms(s) {
+  const player = s.opponent;
+
+  for (const card of getPlayablePrograms(player)) {
+    if (card.id !== "p5") continue;
+
+    const target = player.field
+      .filter(unit => (unit.gear || []).length > 0)
+      .sort((a, b) => getPower(b) - getPower(a))[0];
+
+    if (!target) continue;
+
+    playAiProgramCard(s, card, { targetUid: target.uid });
+  }
+}
+
+function playAiFloorItPrograms(s) {
+  const player = s.opponent;
+  const enemy = s.player;
+
+  for (const card of getPlayablePrograms(player)) {
+    if (card.id !== "p2") continue;
+
+    const target = enemy.field.filter(unit => unit.spent && (unit.cost || 0) <= 4)[0];
+    if (!target) continue;
+
+    playAiProgramCard(s, card, { targetUid: target.uid });
+  }
+}
+
+function playAiAfterpartyPrograms(s) {
+  const player = s.opponent;
+  const enemy = s.player;
+
+  for (const card of getPlayablePrograms(player)) {
+    if (card.id !== "p4" || !enemy.gigDice.length) continue;
+
+    const targetIndex = enemy.gigDice.reduce(
+      (best, gig, index) => gig.value > enemy.gigDice[best].value ? index : best,
+      0
+    );
+
+    playAiProgramCard(s, card, { gigId: enemy.gigDice[targetIndex]?.id });
+  }
+}
+
+function playAiPrograms(s) {
+  playAiRemovalPrograms(s);
+  playAiGigBoostPrograms(s);
+  playAiBuffPrograms(s);
+  playAiGearComboPrograms(s);
+  playAiFloorItPrograms(s);
+  playAiAfterpartyPrograms(s);
 }
 
 function beginAiTurn(s) {
@@ -127,6 +249,7 @@ export function aiTurn(state, dependencies = {}) {
   const deps = createAiTurnDependencies(dependencies);
 
   beginAiTurn(s);
+  playAiPrograms(s);
   log(s, "AI turn engine extraction placeholder reached");
 
   if (typeof deps.readyPhase === "function") {
@@ -142,9 +265,13 @@ export const aiHelpers = {
   spendAiEddies,
   removeFromHand,
   playToTrash,
+  getPlayableCards,
+  getPlayablePrograms,
   rollHighestAvailableFixerDie,
   sellIfDeadHand,
   beginAiTurn,
+  playAiProgramCard,
+  playAiPrograms,
   resolveEffect,
   uid,
 };
