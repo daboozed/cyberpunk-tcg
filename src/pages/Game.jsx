@@ -112,7 +112,16 @@ const endTurnBtn = `
   shadow-[0_4px_0_rgb(0,120,120)]
   hover:bg-cyan-400
   active:translate-y-[2px] active:shadow-none
+
 `;
+
+const passBtn = `
+  bg-gray-600 text-white border-gray-300
+  shadow-[0_4px_0_rgb(75,85,99)]
+  hover:bg-gray-500
+  active:translate-y-[2px] active:shadow-none
+`;
+
   const [cards, setCards] = useState([]);
   const [cardMap, setCardMap] = useState({});
   const [gs, setGs] = useState(() => createInitialState());
@@ -985,6 +994,8 @@ return (
       onFieldUnitClick={handleOpponentFieldClick}
       onAttackGig={handleAttackGig}
       onRollGig={handlePickGig}
+      pendingBlock={gs.pendingBlock}
+onBlock={handleBlockerDecision}
     />
 
   </div>
@@ -1021,9 +1032,19 @@ return (
   {phaseButtonLabel}
 </button>
 
+{gs.pendingBlock && (
+  <button
+    className={cn(actionBtn, passBtn)}
+    onClick={() => handleBlockerDecision(null)}
+  >
+    PASS
+  </button>
+)}
+
     <button
       className={cn(actionBtn, endTurnBtn)}
       onClick={handleEndTurn}
+      disabled={!!gs.pendingBlock}
     >
       END TURN
     </button>
