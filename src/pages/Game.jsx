@@ -693,7 +693,7 @@ setGs(newGs);
     if (isMultiplayer) mpSave(newGs);
   }, [gs, isMultiplayer, mpSave]);
 
-    const handleLegendPeek = useCallback((index) => {
+  const handleLegendPeek = useCallback((index) => {
   if (peekIndex !== null) return;
 
   const owner = gs.pendingLegendPeek?.owner || "player";
