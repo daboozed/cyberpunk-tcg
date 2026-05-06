@@ -1016,7 +1016,7 @@ return (
       selectedAttacker={selectedAttacker}
       playerLabel={isMultiplayer ? myPlayerLabel : "Player 1"}
       pendingBlock={gs.pendingBlock}
-onBlock={handleBlockerDecision}
+      onBlock={handleBlockerDecision}
     />
   </div>
 
