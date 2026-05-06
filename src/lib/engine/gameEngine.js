@@ -9,7 +9,7 @@ import {
    
 export { resolveGigBoost } from "../effectResolver";
 import { resolveLegendFlip } from "../legendFlipResolver";
-import { resolveEffect } from "../effectResolver";
+import { resolveEffect, applyEndOfTurnCleanup } from "../effectResolver";
 import { aiTurn as runAiTurn } from "./AiTurnEngine";
   // =========================
   // PHASES
@@ -454,7 +454,7 @@ if (card.type === 'program' && card.effectData) {
   // END TURN
   // =========================
   export function endTurn(state){
-  const s = clone(state);
+  const s = applyEndOfTurnCleanup(clone(state));
 
   s.currentPlayer =
     s.currentPlayer === "player"
