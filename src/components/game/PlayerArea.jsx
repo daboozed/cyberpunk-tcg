@@ -171,6 +171,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         onFieldUnitClick,
        phase,
         isAttackTargetArea = false,
+        targetingGlow = false,
       }) {
 
       const isAttackPhase = phase === PHASES.ATTACK;
@@ -220,6 +221,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
            !!selectedAttacker &&
            !!unit.spent
           }
+          targetingGlow={targetingGlow}
 
   onClick={() => onFieldUnitClick?.(unit)}
 />
