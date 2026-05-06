@@ -74,6 +74,12 @@ function getPlayableGear(player) {
   return getPlayableCards(player).filter(card => card.type === "gear");
 }
 
+function getReadyAiAttackers(player) {
+  return (player.field || [])
+    .filter(unit => !unit.spent && !unit.justPlayed && !unit.cantAttack)
+    .sort((a, b) => getPower(b) - getPower(a));
+}
+
 function rollHighestAvailableFixerDie(s, player) {
   if (!Array.isArray(player.fixerArea) || player.fixerArea.length === 0) return;
 
@@ -288,6 +294,115 @@ function equipAiGear(s) {
   }
 }
 
+function chooseProfitableUnitTarget(attacker, enemy) {
+  const attackerPower = getPower(attacker);
+
+  return (enemy.field || [])
+    .filter(unit => unit.spent)
+    .slice()
+    .sort((a, b) => getPower(b) - getPower(a))
+    .find(unit => attackerPower > getPower(unit));
+}
+
+function tryAiAttackUnit(s, attacker) {
+  const player = s.opponent;
+  const enemy = s.player;
+  const target = chooseProfitableUnitTarget(attacker, enemy);
+
+  if (!target) return false;
+
+  attacker.spent = true;
+
+  const blockers = enemy.field.filter(unit => !unit.spent && unit.uid !== target.uid);
+  if (blockers.length) {
+    s.pendingBlock = {
+      attacker,
+      targetType: "unit",
+      targetUid: target.uid,
+      blockersOwner: "player",
+    };
+
+    log(s, `${attacker.name} attacks ${target.name}`);
+    return true;
+  }
+
+  const index = enemy.field.findIndex(unit => unit.uid === target.uid);
+  const [dead] = enemy.field.splice(index, 1);
+  enemy.trash.push(dead);
+
+  log(s, `${attacker.name} defeats ${target.name}`);
+  return true;
+}
+
+function tryAiStealGig(s, attacker) {
+  const player = s.opponent;
+  const enemy = s.player;
+
+  if (!enemy.gigDice.length) return false;
+
+  attacker.spent = true;
+
+  const blockers = enemy.field.filter(unit => !unit.spent);
+  if (blockers.length) {
+    s.pendingBlock = {
+      attacker,
+      targetType: "gig",
+      blockersOwner: "player",
+    };
+
+    log(s, `${attacker.name} attacks a Gig`);
+    return true;
+  }
+
+  const bestIndex = enemy.gigDice.reduce(
+    (best, gig, index) => gig.value > enemy.gigDice[best].value ? index : best,
+    0
+  );
+
+  const [stolen] = enemy.gigDice.splice(bestIndex, 1);
+  player.gigDice.push({ ...stolen, id: uid() });
+
+  log(s, `${attacker.name} steals Gig ${stolen.value}`);
+  return true;
+}
+
+function runAiAttacks(s, dependencies = {}) {
+  const player = s.opponent;
+
+  log(s, "Player 2 — ATTACK PHASE");
+
+  for (const attacker of getReadyAiAttackers(player)) {
+    if (typeof dependencies.triggerGearEffects === "function") {
+      dependencies.triggerGearEffects(s, attacker, "onAttack");
+    }
+
+    if (tryAiAttackUnit(s, attacker)) {
+      if (s.pendingBlock) return s;
+      continue;
+    }
+
+    if (tryAiStealGig(s, attacker)) {
+      if (s.pendingBlock) return s;
+      continue;
+    }
+
+    attacker.spent = true;
+  }
+
+  return s;
+}
+
+function endAiTurn(s, dependencies = {}) {
+  s.currentPlayer = "player";
+  s.turn++;
+
+  if (typeof dependencies.readyPhase === "function") {
+    return dependencies.readyPhase(s);
+  }
+
+  return s;
+}
+
 function beginAiTurn(s) {
   const player = s.opponent;
 
@@ -319,8 +434,8 @@ export function createAiTurnDependencies(overrides = {}) {
   };
 }
 
-// Partial extracted AI turn implementation.
-// Keeping this non-live until gameEngine.js is safely wired to import it.
+// Extracted AI turn implementation. It is not wired live until gameEngine.js
+// imports this function and removes the older inline aiTurn implementation.
 export function aiTurn(state, dependencies = {}) {
   const s = clone(state);
   const deps = createAiTurnDependencies(dependencies);
@@ -330,13 +445,11 @@ export function aiTurn(state, dependencies = {}) {
   playAiUnits(s);
   maybeCallAiLegend(s);
   equipAiGear(s);
-  log(s, "AI turn engine extraction placeholder reached");
+  runAiAttacks(s, deps);
 
-  if (typeof deps.readyPhase === "function") {
-    return deps.readyPhase(s);
-  }
+  if (s.pendingBlock) return s;
 
-  return s;
+  return endAiTurn(s, deps);
 }
 
 export const aiHelpers = {
@@ -349,6 +462,7 @@ export const aiHelpers = {
   getPlayablePrograms,
   getPlayableUnits,
   getPlayableGear,
+  getReadyAiAttackers,
   rollHighestAvailableFixerDie,
   sellIfDeadHand,
   beginAiTurn,
@@ -357,6 +471,11 @@ export const aiHelpers = {
   playAiUnits,
   maybeCallAiLegend,
   equipAiGear,
+  chooseProfitableUnitTarget,
+  tryAiAttackUnit,
+  tryAiStealGig,
+  runAiAttacks,
+  endAiTurn,
   resolveEffect,
   uid,
 };
