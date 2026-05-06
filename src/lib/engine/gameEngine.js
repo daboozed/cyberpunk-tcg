@@ -590,8 +590,21 @@ export function resolveBlockerDecision(state, blockerUid = null) {
   const {
     attacker,
     targetType,
-    targetUid
+    targetUid,
+    source
   } = s.pendingBlock;
+
+  const finishBlockerDecision = () => {
+    s.pendingBlock = null;
+
+    if (source === "aiAttack") {
+      s.currentPlayer = "player";
+      s.phase = PHASES.PLAY;
+      s.message = "Opponent finished their turn.";
+    }
+
+    return s;
+  };
 
   const blocker = blockerUid
     ? s.player.field.find(u => u.uid === blockerUid)
@@ -622,8 +635,7 @@ export function resolveBlockerDecision(state, blockerUid = null) {
       }
     }
 
-    s.pendingBlock = null;
-    return s;
+    return finishBlockerDecision();
   }
 
   // BLOCK COMBAT
@@ -650,8 +662,7 @@ export function resolveBlockerDecision(state, blockerUid = null) {
     log(s, `${blocker.name} blocks and defeats ${attacker.name}`);
   }
 
-  s.pendingBlock = null;
-  return s;
+  return finishBlockerDecision();
 }
 
   export function playLegendAsSolo(state, legendIndex){
