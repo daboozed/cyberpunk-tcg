@@ -56,14 +56,36 @@ function playToTrash(player, card) {
   player.trash.push(card);
 }
 
+// These are the outside functions the extracted AI will need while gameEngine.js
+// still owns combat, gear triggers, and phase transitions.
+//
+// Expected dependency shape for the final extraction:
+// {
+//   readyPhase: (state) => state,
+//   triggerGearEffects: (state, unit, triggerName) => void,
+//   resolveEffect: (effectData, context) => void,
+//   uid: () => string,
+// }
+export function createAiTurnDependencies(overrides = {}) {
+  return {
+    readyPhase: null,
+    triggerGearEffects: null,
+    resolveEffect,
+    uid,
+    ...overrides,
+  };
+}
+
 // Placeholder for the extracted AI turn implementation.
 // Keeping this non-live until gameEngine.js is safely wired to import it.
-export function aiTurn(state, readyPhase) {
+export function aiTurn(state, dependencies = {}) {
   const s = clone(state);
+  const deps = createAiTurnDependencies(dependencies);
+
   log(s, "AI turn engine placeholder reached");
 
-  if (typeof readyPhase === "function") {
-    return readyPhase(s);
+  if (typeof deps.readyPhase === "function") {
+    return deps.readyPhase(s);
   }
 
   return s;
