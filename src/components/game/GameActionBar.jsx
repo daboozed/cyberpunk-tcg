@@ -11,7 +11,6 @@ export default function GameActionBar({
   handleBlockerDecision,
   endTurnBtn,
   handleEndTurn,
-  handleDebugIncreaseAllGigs,
 }) {
   return (
     <div className="flex gap-4 justify-center mt-4">
@@ -38,13 +37,6 @@ export default function GameActionBar({
         disabled={!!pendingBlock}
       >
         END TURN
-      </button>
-
-      <button
-        className="px-6 py-2 rounded-md border border-green-400 text-green-300 bg-black hover:bg-green-900"
-        onClick={handleDebugIncreaseAllGigs}
-      >
-        +1 ALL GIGS
       </button>
     </div>
   );
