@@ -44,30 +44,15 @@ import {
   getAvailableLegendEddies,
   getUnitPower
 } from "@/lib/engine/EconomyEngine";
-import { buildCustomDeck, GIG_DICE, CARD_BACK } from "@/lib/cardPool";
+import { buildCustomDeck, CARD_BACK } from "@/lib/cardPool";
+import {
+  getOrCreatePlayerId,
+  flipState,
+  makePlayerState,
+} from "@/lib/game/gamePageUtils";
 import PlayerArea from "@/components/game/PlayerArea";
 import HandArea from "@/components/game/HandArea";
 import GameLog from "@/components/game/GameLog";
-
-function cleanGigs(gigs) {
-  return (gigs || []).filter(g => g && g.id && g.sides);
-}
-
-function getOrCreatePlayerId() {
-  let id = localStorage.getItem('cpTCG_playerId');
-  if (!id) {
-    id = Math.random().toString(36).slice(2, 10).toUpperCase() + Date.now().toString(36).toUpperCase();
-    localStorage.setItem('cpTCG_playerId', id);
-  }
-  return id;
-}
-
-function flipState(gs) {
-  const flipped = { ...gs, player: gs.opponent, opponent: gs.player };
-  if (flipped.winner === 'player') flipped.winner = 'opponent';
-  else if (flipped.winner === 'opponent') flipped.winner = 'player';
-  return flipped;
-}
 
 function shuffle(arr) {
   const a = [...arr];
@@ -76,20 +61,6 @@ function shuffle(arr) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
-}
-
-function makePlayerState(deck, owner) {
-  return {
-    legends: shuffle([...deck.legends]),
-    deck: shuffle([...deck.mainDeck]),
-    hand: [],
-    field: [],
-    eddies: [],
-    trash: [],
-    gigDice: [],
-    fixerArea: GIG_DICE.map((d, i) => ({ ...d, id: `${owner}_die_${i}` })),
-    streetCred: 0,
-  };
 }
 
 export default function Game() {
@@ -722,22 +693,7 @@ setGs(newGs);
     if (isMultiplayer) mpSave(newGs);
   }, [gs, isMultiplayer, mpSave]);
 
-  const handleDebugIncreaseAllGigs = useCallback(() => {
-  setGs(prev => {
-    const updated = structuredClone(prev);
-
-    updated.player.gigDice = (updated.player.gigDice || []).map(gig => ({
-      ...gig,
-      value: Math.min(gig.sides, (gig.value || 0) + 1)
-    }));
-
-    console.log("DEBUG BOOST:", updated.player.gigDice);
-
-    return updated;
-  });
-}, []);
-
-  const handleLegendPeek = useCallback((index) => {
+    const handleLegendPeek = useCallback((index) => {
   if (peekIndex !== null) return;
 
   const owner = gs.pendingLegendPeek?.owner || "player";
@@ -948,7 +904,6 @@ return (
     handleBlockerDecision={handleBlockerDecision}
     endTurnBtn={endTurnBtn}
     handleEndTurn={handleEndTurn}
-    handleDebugIncreaseAllGigs={handleDebugIncreaseAllGigs}
   />
   {/* HAND */}
   <HandArea
