@@ -8,12 +8,16 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { fetchCards } from "../data/cardService";
 import { base44 } from "@/api/base44Client";
 import { resolveEffect } from "@/lib/effectResolver";
 import GameModals from "@/components/game/GameModals";
+import GameTopBar from "@/components/game/GameTopBar";
+import GameOverOverlay from "@/components/game/GameOverOverlay";
+import WaitingForOpponentOverlay from "@/components/game/WaitingForOpponentOverlay";
+import MulliganOverlay from "@/components/game/MulliganOverlay";
+import RulesOverlay from "@/components/game/RulesOverlay";
+import GameActionBar from "@/components/game/GameActionBar";
 import {
   createInitialState,
   setupGame,
@@ -41,18 +45,9 @@ import {
   getUnitPower
 } from "@/lib/engine/EconomyEngine";
 import { buildCustomDeck, GIG_DICE, CARD_BACK } from "@/lib/cardPool";
-import FloorItModal from "@/components/game/FloorItModal";
 import PlayerArea from "@/components/game/PlayerArea";
 import HandArea from "@/components/game/HandArea";
 import GameLog from "@/components/game/GameLog";
-import CardDetailModal from "@/components/game/CardDetailModal";
-import BlockerDecisionModal from "@/components/game/BlockerDecisionModal";
-import AdjustGigModal from "@/components/game/AdjustGigModal";
-import CardHoverPreview from "@/components/game/CardHoverPreview";
-import GigStealModal from "@/components/game/GigStealModal";
-import ChooseGigModal from "@/components/game/ChooseGigModal";
-import { Swords, Crown, HelpCircle, LogOut, Loader2, Home } from "lucide-react";
-import { Link } from "react-router-dom";
 
 function cleanGigs(gigs) {
   return (gigs || []).filter(g => g && g.id && g.sides);
@@ -860,132 +855,42 @@ return (
   }} />
   {/* Glow orb */}
   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] pointer-events-none" style={{ background: 'radial-gradient(ellipse, rgba(0,255,255,0.06) 0%, transparent 70%)' }} />
-      {/* Top bar */}
-      {/* Top bar */}
-<div
-  className="flex justify-end px-[clamp(8px,1vw,20px)] py-1 relative z-10"
-  style={{
-  background: 'rgba(0,10,20,0.95)'
-}}
->
-  <div className="flex items-center gap-1">
-    <Button
-      size="sm"
-      variant="ghost"
-      onClick={() => setShowRules(!showRules)}
-      style={{ color: '#00ffff' }}
-    >
-      <HelpCircle className="w-4 h-4" />
-    </Button>
+      <GameTopBar
+        showRules={showRules}
+        setShowRules={setShowRules}
+        setShowCombatLog={setShowCombatLog}
+        handleLeaveRoom={handleLeaveRoom}
+      />
 
-    <Button
-      size="sm"
-      variant="ghost"
-      onClick={() => setShowCombatLog(prev => !prev)}
-      className="font-rajdhani text-xs"
-      style={{ color: '#00ffff' }}
-    >
-      Combat Log
-    </Button>
+      <GameOverOverlay
+        isGameOver={isGameOver}
+        gs={gs}
+        handleNewGame={handleNewGame}
+        navigate={navigate}
+        isMultiplayer={isMultiplayer}
+      />
 
-    <Button
-      size="sm"
-      variant="ghost"
-      onClick={handleLeaveRoom}
-      className="gap-1 font-rajdhani text-xs"
-      style={{ color: '#ff3366' }}
-    >
-      <LogOut className="w-4 h-4" /> Leave
-    </Button>
-  </div>
-</div>
+      <WaitingForOpponentOverlay
+        isMultiplayer={isMultiplayer}
+        waitingForOpponent={waitingForOpponent}
+        isGameOver={isGameOver}
+        myRoleRef={myRoleRef}
+      />
 
-      {/* Winner overlay */}
-      {isGameOver && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="text-center space-y-4 p-8">
-            <Crown className={cn("w-16 h-16 mx-auto", gs.winner === 'player' ? "text-accent" : "text-destructive")} />
-            <h2 className={cn("font-orbitron text-3xl md:text-5xl font-black tracking-wider", gs.winner === 'player' ? "text-accent" : "text-destructive")}>
-              {gs.winner === 'player' ? 'VICTORY' : 'DEFEAT'}
-            </h2>
-            <p className="text-foreground/70 font-rajdhani text-lg">{gs.message}</p>
-            <div className="flex gap-3 justify-center mt-4">
-              {!isMultiplayer && (
-                <Button onClick={handleNewGame} className="font-orbitron bg-primary text-primary-foreground hover:bg-primary/80">
-                  New Game
-                </Button>
-              )}
-              <Button onClick={() => navigate('/')} variant="outline" className="font-orbitron gap-2 border-muted-foreground/40 text-muted-foreground hover:text-foreground">
-                <Home className="w-4 h-4" /> Lobby
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <MulliganOverlay
+        gs={gs}
+        isMultiplayer={isMultiplayer}
+        handleMulligan={handleMulligan}
+        mulliganPreview={mulliganPreview}
+        setMulliganPreview={setMulliganPreview}
+        mousePos={mousePos}
+        setMousePos={setMousePos}
+      />
 
-      {/* Waiting for opponent overlay */}
-      {isMultiplayer && waitingForOpponent && !isGameOver && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-none">
-          <div className="bg-card border border-primary/40 rounded-xl p-8 text-center shadow-2xl pointer-events-auto">
-            <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
-            <p className="font-orbitron text-primary tracking-wider">Waiting for opponent...</p>
-            <p className="font-rajdhani text-muted-foreground text-sm mt-1">
-              {myRoleRef.current === 'player1' ? "Player 2's turn" : "Player 1's turn"}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Mulligan dialog (single player only) */}
-      {gs.phase === PHASES.MULLIGAN && !isMultiplayer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="bg-card border border-border rounded-xl p-6 mx-4 text-center space-y-4 max-w-4xl w-full">
-            <h2 className="font-orbitron text-xl font-bold text-primary">MULLIGAN?</h2>
-            <p className="text-sm font-rajdhani text-foreground/70">Shuffle your hand back and draw 6 new cards?</p>
-            <div className="flex gap-3 justify-center overflow-x-auto pb-2" onMouseMove={e => setMousePos({ x: e.clientX, y: e.clientY })}>
-              {(gs.player.hand || []).filter(Boolean).map((card) => (
-                <div key={card.uid} onMouseEnter={() => setMulliganPreview(card)} onMouseLeave={() => setMulliganPreview(null)}
-                  className={cn("relative w-28 h-40 rounded-xl border-2 overflow-hidden flex-shrink-0 cursor-pointer transition-all hover:scale-105",
-                    card.type === 'unit' ? 'border-cyan-500/60' : card.type === 'program' ? 'border-violet-500/60' : card.type === 'gear' ? 'border-rose-500/60' : 'border-amber-500/60')}>
-                  {card.imageUrl ? <img src={card.imageUrl} alt={card.name} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-muted" />}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/20" />
-                  <div className="absolute bottom-0 inset-x-0 p-1.5">
-                    <p className="text-[9px] font-rajdhani font-bold text-white text-center leading-tight">{card.name}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-3 justify-center">
-              <Button onClick={() => handleMulligan(true)} variant="outline" className="font-rajdhani border-secondary text-secondary hover:bg-secondary/10">Mulligan</Button>
-              <Button onClick={() => handleMulligan(false)} className="font-rajdhani bg-primary text-primary-foreground">Keep Hand</Button>
-            </div>
-          </div>
-          {mulliganPreview && <CardHoverPreview card={mulliganPreview} mousePos={mousePos} />}
-        </div>
-      )}
-
-      {/* Rules panel */}
-      {showRules && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowRules(false)}>
-          <div className="bg-card border border-border rounded-xl p-6 max-w-lg mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <h2 className="font-orbitron text-lg font-bold text-primary mb-3">HOW TO PLAY</h2>
-            <div className="space-y-3 text-xs font-rajdhani text-foreground/80">
-              <div><h3 className="text-sm font-bold text-cyan-400">WIN CONDITION</h3><p>Start your turn with 6+ Gig Dice to win. In Overtime, first to 7 Gigs wins instantly.</p></div>
-              <div><h3 className="text-sm font-bold text-cyan-400">TURN PHASES</h3>
-                <p><strong className="text-green-400">Ready:</strong> Draw a card, pick & roll a Gig Die, ready all spent cards.</p>
-                <p><strong className="text-green-400">Play:</strong> Sell cards for Eddies, Call Legends (2€$), play Units/Gear/Programs.</p>
-                <p><strong className="text-green-400">Attack:</strong> Attack spent rival units or attack rival directly (steal Gigs).</p>
-              </div>
-              <div><h3 className="text-sm font-bold text-cyan-400">COMBAT</h3>
-                <p>Units can only attack spent rival units. Higher power wins.</p>
-                <p>Attack rival directly to steal their Gig Dice. Choose which Gig to steal!</p>
-                <p>Units with 10+ Power steal 2 Gigs instead of 1.</p>
-              </div>
-            </div>
-            <Button onClick={() => setShowRules(false)} className="mt-4 w-full font-rajdhani" variant="outline">Close</Button>
-          </div>
-        </div>
-      )}
+      <RulesOverlay
+        showRules={showRules}
+        setShowRules={setShowRules}
+      />
 
       {/* Main game area */}
         <div className="flex flex-col items-center relative z-10 w-full flex-1">
@@ -1032,41 +937,19 @@ return (
   <div className="w-full max-w-[1200px] mt-2">
 
   {/* ACTION BUTTONS */}
-  <div className="flex gap-4 justify-center mt-4">
-    <button
-  className={cn(actionBtn, phaseButtonStyle)}
-  onClick={handleStartAttack}
-  disabled={phaseButtonDisabled}
->
-  {phaseButtonLabel}
-</button>
-
-{gs.pendingBlock && (
-  <button
-    className={cn(actionBtn, passBtn)}
-    onClick={() => handleBlockerDecision(null)}
-  >
-    PASS
-  </button>
-)}
-
-    <button
-      className={cn(actionBtn, endTurnBtn)}
-      onClick={handleEndTurn}
-      disabled={!!gs.pendingBlock}
-    >
-      END TURN
-    </button>
-
-<button
-  className="px-6 py-2 rounded-md border border-green-400 text-green-300 bg-black hover:bg-green-900"
-  onClick={handleDebugIncreaseAllGigs}
->
-  +1 ALL GIGS
-</button>
-
-  </div>
-
+  <GameActionBar
+    actionBtn={actionBtn}
+    phaseButtonStyle={phaseButtonStyle}
+    phaseButtonLabel={phaseButtonLabel}
+    phaseButtonDisabled={phaseButtonDisabled}
+    handleStartAttack={handleStartAttack}
+    pendingBlock={gs.pendingBlock}
+    passBtn={passBtn}
+    handleBlockerDecision={handleBlockerDecision}
+    endTurnBtn={endTurnBtn}
+    handleEndTurn={handleEndTurn}
+    handleDebugIncreaseAllGigs={handleDebugIncreaseAllGigs}
+  />
   {/* HAND */}
   <HandArea
     onPlayCard={handlePlayCard}
