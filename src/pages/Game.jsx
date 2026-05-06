@@ -543,9 +543,21 @@ const die = side?.fixerArea?.[index];
   return;
 }
 
-  // No unit-click glow anymore
-  setSelectedAttacker(null);
+  // ATTACK PHASE: select one of your ready units as the attacker
+if (gs.phase === PHASES.ATTACK) {
+  if (!unit || unit.spent || unit.justPlayed || unit.cantAttack) return;
+
+  setSelectedAttacker(prev =>
+    prev === unit.uid ? null : unit.uid
+  );
+
   setactualIndex(null);
+  return;
+}
+
+// Default: clear selection outside attack flow
+setSelectedAttacker(null);
+setactualIndex(null);
   }, [gs, gearTarget, pendingProgram, isMultiplayer, mpSave]);
 
   const handleOpponentFieldClick = useCallback((unit) => {
@@ -592,11 +604,14 @@ const die = side?.fixerArea?.[index];
   mpSave
 ]);
 
-const handleAttackGig = useCallback(() => {
+const handleAttackGig = useCallback((gigIndex) => {
   if (gs.phase !== PHASES.ATTACK) return;
   if (!selectedAttacker) return;
 
-  const newGs = attackRival(gs, selectedAttacker);
+  const gig = gs.opponent.gigDice?.[gigIndex];
+  if (!gig?.id) return;
+
+  const newGs = resolveGigSteal(gs, selectedAttacker, gig.id);
 
   setGs(newGs);
   setSelectedAttacker(null);
@@ -793,7 +808,6 @@ if (gs.phase === PHASES.ATTACK) {
     if (isGameOver) return gs.message || (gs.winner === 'player' ? 'You win!' : 'Defeat.');
     if (gearTarget !== null) return 'Select a friendly unit to equip this Gear to.';
     if (gs.awaitingTarget) return 'Select a target to apply the effect.';
-    if (gs.pendingGigSteal) return 'Choose an opponent Gig to steal!';
     if (gs.phase === PHASES.PICK_GIG) return 'Pick a Fixer Die to roll your Gig.';
     if (gs.phase === PHASES.PLAY) {
       if (selectedAttacker) return 'Attacker selected — go to Attack Phase to attack, or deselect.';
@@ -1045,6 +1059,7 @@ return (
     <GameLog
       logs={gs.gameLog}
       alwaysExpanded
+      cardLookup={cardMap}
       extraHeaderRight={
         <button
           onClick={() => {

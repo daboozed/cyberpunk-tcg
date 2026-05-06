@@ -4,6 +4,7 @@ export default function GigArea({
   gigs = [],
   title = "GIGS",
   clickable = false,
+  attackGlow = false,
   isOpponent = false,
   onGigClick
 }) {
@@ -82,10 +83,12 @@ export default function GigArea({
                 opacity: gig.value ? 1 : 0.5,
                 transform: boosted ? "scale(1.18)" : "scale(1)",
                 boxShadow: added
-                  ? "0 0 14px rgba(34,211,238,.95)"
-                  : boosted
-                  ? "0 0 12px rgba(34,211,238,.75)"
-                  : "none"
+                ? "0 0 14px rgba(34,211,238,.95)"
+                : boosted
+                ? "0 0 12px rgba(34,211,238,.75)"
+                : attackGlow && clickable
+                ? "0 0 0 3px rgba(255,0,0,0.95), 0 0 14px rgba(255,0,0,1), 0 0 30px rgba(255,0,0,0.95)"
+                : "none"
               }}
             >
               {gig.value ?? `d${gig.sides}`}

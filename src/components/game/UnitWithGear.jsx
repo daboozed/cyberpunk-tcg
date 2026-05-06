@@ -5,7 +5,7 @@ const CARD_W = 80;
 const CARD_H = 112;
 const PEEK = 22; // px of each gear card's bottom visible below the previous layer
 
-export default function UnitWithGear({ unit, selected, onClick }) {
+export default function UnitWithGear({ unit, selected, attackTarget = false, onClick }) {
   const gear = unit.gear || [];
   const totalHeight = CARD_H + gear.length * PEEK;
 
@@ -17,11 +17,20 @@ export default function UnitWithGear({ unit, selected, onClick }) {
         height: totalHeight,
         transform: unit.spent ? 'rotate(45deg) scale(0.95)' : 'none',
         opacity: unit.spent ? 0.7 : 1,
-        transition: 'transform 0.2s ease',
+        transition: 'transform 0.2s ease, filter 0.2s ease',
         transformOrigin: 'center center',
         flexShrink: 0,
+        filter: attackTarget
+  ? 'drop-shadow(0 0 8px rgba(239,68,68,0.65)) drop-shadow(0 0 14px rgba(239,68,68,0.45))'
+  : 'none',
+boxShadow: attackTarget
+  ? '0 0 0 2px rgba(239,68,68,0.65), 0 0 12px rgba(239,68,68,0.45)'
+  : 'none',
+borderRadius: attackTarget ? '8px' : undefined,
       }}
+
     >
+
       {/* Gear cards — each shows only its bottom PEEK px */}
       {gear.map((g, i) => (
         <div

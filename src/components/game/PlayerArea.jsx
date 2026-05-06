@@ -164,7 +164,15 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
     );
   }
 
-      function FieldArea({ field, borderColor, selectedAttacker, targetingGlow, onFieldUnitClick, phase }) {
+      function FieldArea({
+        field,
+        borderColor,
+        selectedAttacker,
+        onFieldUnitClick,
+       phase,
+        isAttackTargetArea = false,
+      }) {
+
       const isAttackPhase = phase === PHASES.ATTACK;
 
       return (
@@ -204,10 +212,17 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
           )}
 
           <UnitWithGear
-            unit={unit}
-            selected={targetingGlow}
-            onClick={() => onFieldUnitClick?.(unit)}
-          />
+          unit={unit}
+          selected={selectedAttacker === unit.uid}
+          attackTarget={
+           isAttackTargetArea &&
+           isAttackPhase &&
+           !!selectedAttacker &&
+           !!unit.spent
+          }
+
+  onClick={() => onFieldUnitClick?.(unit)}
+/>
         </div>
       );
     })
@@ -535,7 +550,9 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
       selectedAttacker={selectedAttacker}
       onFieldUnitClick={onFieldUnitClick}
       phase={phase}
+      isAttackTargetArea={true}
     />
+    
   </div>
 
                       {/* 🔥 PLAYER 2 GIG AREA BOX */}
@@ -548,10 +565,11 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
     }}
   >
     <GigArea
-    gigs={player.gigDice || []}
+     gigs={player.gigDice || []}
     title="GIG AREA"
     clickable={isAttackPhase && !!selectedAttacker}
-    onGigClick={(gigIndex) => onAttackGig?.(gigIndex)}
+    attackGlow={isAttackPhase && !!selectedAttacker && (player.gigDice || []).length > 0}
+   onGigClick={(gigIndex) => onAttackGig?.(gigIndex)}
   />
   </div>
       
