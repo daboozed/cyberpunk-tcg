@@ -14,7 +14,7 @@ export default function GameActionBar({
   handleDebugIncreaseAllGigs,
 }) {
   return (
-    <div className="flex items-center justify-center gap-3 flex-wrap">
+    <div className="flex gap-4 justify-center mt-4">
       <button
         className={cn(actionBtn, phaseButtonStyle)}
         onClick={handleStartAttack}
@@ -41,10 +41,7 @@ export default function GameActionBar({
       </button>
 
       <button
-        className={cn(
-          actionBtn,
-          "bg-purple-600 text-white border-purple-300 shadow-[0_4px_0_rgb(88,28,135)] hover:bg-purple-500 active:translate-y-[2px] active:shadow-none"
-        )}
+        className="px-6 py-2 rounded-md border border-green-400 text-green-300 bg-black hover:bg-green-900"
         onClick={handleDebugIncreaseAllGigs}
       >
         +1 ALL GIGS
