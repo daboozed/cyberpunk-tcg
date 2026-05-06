@@ -112,6 +112,7 @@ const endTurnBtn = `
   shadow-[0_4px_0_rgb(0,120,120)]
   hover:bg-cyan-400
   active:translate-y-[2px] active:shadow-none
+  disabled={!!gs.pendingBlock}
 `;
 
 const passBtn = `
