@@ -64,6 +64,16 @@ function getPlayablePrograms(player) {
   return getPlayableCards(player).filter(card => card.type === "program");
 }
 
+function getPlayableUnits(player) {
+  return getPlayableCards(player)
+    .filter(card => card.type === "unit")
+    .sort((a, b) => ((getPower(b) * 2) - (b.cost || 0)) - ((getPower(a) * 2) - (a.cost || 0)));
+}
+
+function getPlayableGear(player) {
+  return getPlayableCards(player).filter(card => card.type === "gear");
+}
+
 function rollHighestAvailableFixerDie(s, player) {
   if (!Array.isArray(player.fixerArea) || player.fixerArea.length === 0) return;
 
@@ -211,6 +221,73 @@ function playAiPrograms(s) {
   playAiAfterpartyPrograms(s);
 }
 
+function playAiUnits(s) {
+  const player = s.opponent;
+  let loops = 0;
+
+  while (getPlayableUnits(player).length && loops < 5) {
+    const card = getPlayableUnits(player)[0];
+
+    spendAiEddies(player, card.cost || 0);
+    removeFromHand(player, card);
+
+    player.field.push({
+      ...card,
+      uid: uid(),
+      spent: false,
+      justPlayed: true,
+    });
+
+    log(s, `Player 2 plays ${card.name}`);
+    loops++;
+  }
+}
+
+function maybeCallAiLegend(s) {
+  const player = s.opponent;
+  const enemy = s.player;
+  const facedown = player.legends.find(legend => !legend.faceUp);
+
+  if (!facedown) return;
+
+  const affordableUnits = player.hand.filter(
+    card => card.type === "unit" && (card.cost || 0) <= getAvailableAiEddies(player)
+  );
+
+  const enemyPower = enemy.field.reduce((total, unit) => total + getPower(unit), 0);
+  const aiPower = player.field.reduce((total, unit) => total + getPower(unit), 0);
+
+  const boardBehind = enemy.field.length > player.field.length || enemyPower > aiPower;
+  const canSpareResources = getAvailableAiEddies(player) >= 4;
+  const noTempoPlay = affordableUnits.length === 0;
+
+  const shouldCallLegend = noTempoPlay || canSpareResources || boardBehind;
+
+  if (shouldCallLegend && getAvailableAiEddies(player) >= 2) {
+    spendAiEddies(player, 2);
+    facedown.faceUp = true;
+    log(s, `Player 2 calls Legend ${facedown.name}`);
+  }
+}
+
+function equipAiGear(s) {
+  const player = s.opponent;
+
+  for (const card of getPlayableGear(player)) {
+    if (!player.field.length) continue;
+
+    const target = player.field.slice().sort((a, b) => getPower(b) - getPower(a))[0];
+
+    spendAiEddies(player, card.cost || 0);
+    removeFromHand(player, card);
+
+    if (!target.gear) target.gear = [];
+    target.gear.push({ ...card, uid: uid() });
+
+    log(s, `Player 2 equips ${card.name} to ${target.name}`);
+  }
+}
+
 function beginAiTurn(s) {
   const player = s.opponent;
 
@@ -250,6 +327,9 @@ export function aiTurn(state, dependencies = {}) {
 
   beginAiTurn(s);
   playAiPrograms(s);
+  playAiUnits(s);
+  maybeCallAiLegend(s);
+  equipAiGear(s);
   log(s, "AI turn engine extraction placeholder reached");
 
   if (typeof deps.readyPhase === "function") {
@@ -267,11 +347,16 @@ export const aiHelpers = {
   playToTrash,
   getPlayableCards,
   getPlayablePrograms,
+  getPlayableUnits,
+  getPlayableGear,
   rollHighestAvailableFixerDie,
   sellIfDeadHand,
   beginAiTurn,
   playAiProgramCard,
   playAiPrograms,
+  playAiUnits,
+  maybeCallAiLegend,
+  equipAiGear,
   resolveEffect,
   uid,
 };
