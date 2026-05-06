@@ -5,10 +5,11 @@ const CARD_W = 80;
 const CARD_H = 112;
 const PEEK = 22; // px of each gear card's bottom visible below the previous layer
 
-export default function UnitWithGear({ unit, selected, attackTarget = false, targetingGlow = false, onClick }) {
+export default function UnitWithGear({ unit, selected, attackTarget = false, targetingGlow = false, blockerGlow = false, onClick }) {
   const gear = unit.gear || [];
   const totalHeight = CARD_H + gear.length * PEEK;
   const isTargetHighlighted = targetingGlow && !unit.spent;
+  const isBlockerHighlighted = blockerGlow && !unit.spent;
 
   return (
     <div
@@ -18,21 +19,25 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
         height: totalHeight,
         transform: unit.spent ? 'rotate(45deg) scale(0.95)' : 'none',
         opacity: unit.spent ? 0.7 : 1,
-        cursor: isTargetHighlighted ? 'crosshair' : undefined,
+        cursor: isTargetHighlighted || isBlockerHighlighted ? 'crosshair' : undefined,
         transition: 'transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease',
         transformOrigin: 'center center',
         flexShrink: 0,
-        filter: isTargetHighlighted
-          ? 'drop-shadow(0 0 5px rgba(57,255,20,0.48)) drop-shadow(0 0 9px rgba(57,255,20,0.35))'
-          : attackTarget
-            ? 'drop-shadow(0 0 8px rgba(239,68,68,0.65)) drop-shadow(0 0 14px rgba(239,68,68,0.45))'
-            : 'none',
-        boxShadow: isTargetHighlighted
-          ? '0 0 0 1px rgba(57,255,20,0.48), 0 0 9px rgba(57,255,20,0.43), 0 0 16px rgba(57,255,20,0.23)'
-          : attackTarget
-            ? '0 0 0 2px rgba(239,68,68,0.65), 0 0 12px rgba(239,68,68,0.45)'
-            : 'none',
-        borderRadius: isTargetHighlighted || attackTarget ? '8px' : undefined,
+        filter: isBlockerHighlighted
+          ? 'drop-shadow(0 0 5px rgba(156,163,175,0.65)) drop-shadow(0 0 10px rgba(156,163,175,0.45))'
+          : isTargetHighlighted
+            ? 'drop-shadow(0 0 5px rgba(57,255,20,0.48)) drop-shadow(0 0 9px rgba(57,255,20,0.35))'
+            : attackTarget
+              ? 'drop-shadow(0 0 8px rgba(239,68,68,0.65)) drop-shadow(0 0 14px rgba(239,68,68,0.45))'
+              : 'none',
+        boxShadow: isBlockerHighlighted
+          ? '0 0 0 2px rgba(156,163,175,0.7), 0 0 12px rgba(156,163,175,0.5), 0 0 20px rgba(156,163,175,0.28)'
+          : isTargetHighlighted
+            ? '0 0 0 1px rgba(57,255,20,0.48), 0 0 9px rgba(57,255,20,0.43), 0 0 16px rgba(57,255,20,0.23)'
+            : attackTarget
+              ? '0 0 0 2px rgba(239,68,68,0.65), 0 0 12px rgba(239,68,68,0.45)'
+              : 'none',
+        borderRadius: isBlockerHighlighted || isTargetHighlighted || attackTarget ? '8px' : undefined,
       }}
 
     >
