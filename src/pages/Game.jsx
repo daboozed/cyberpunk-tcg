@@ -1,3 +1,11 @@
+// IMPORTANT:
+// Before refactoring/splitting this file, read:
+// docs/game-jsx-split-reference.md
+//
+// This file currently owns gameplay wiring, multiplayer sync,
+// UI state, action handlers, overlays, and board rendering.
+// Split gradually using the documented plan.
+
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
