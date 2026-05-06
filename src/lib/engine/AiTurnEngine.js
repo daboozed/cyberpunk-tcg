@@ -80,6 +80,15 @@ function getReadyAiAttackers(player) {
     .sort((a, b) => getPower(b) - getPower(a));
 }
 
+function getEligibleBlockers(enemy, excludedUid = null) {
+  return (enemy.field || []).filter(unit =>
+    unit &&
+    !unit.spent &&
+    !unit.cantBlock &&
+    unit.uid !== excludedUid
+  );
+}
+
 function rollHighestAvailableFixerDie(s, player) {
   if (!Array.isArray(player.fixerArea) || player.fixerArea.length === 0) return;
 
@@ -305,7 +314,6 @@ function chooseProfitableUnitTarget(attacker, enemy) {
 }
 
 function tryAiAttackUnit(s, attacker) {
-  const player = s.opponent;
   const enemy = s.player;
   const target = chooseProfitableUnitTarget(attacker, enemy);
 
@@ -313,13 +321,15 @@ function tryAiAttackUnit(s, attacker) {
 
   attacker.spent = true;
 
-  const blockers = enemy.field.filter(unit => !unit.spent && unit.uid !== target.uid);
+  const blockers = getEligibleBlockers(enemy, target.uid);
   if (blockers.length) {
     s.pendingBlock = {
       attacker,
       targetType: "unit",
       targetUid: target.uid,
       blockersOwner: "player",
+      eligibleBlockerUids: blockers.map(unit => unit.uid),
+      source: "aiAttack"
     };
 
     log(s, `${attacker.name} attacks ${target.name}`);
@@ -342,12 +352,14 @@ function tryAiStealGig(s, attacker) {
 
   attacker.spent = true;
 
-  const blockers = enemy.field.filter(unit => !unit.spent);
+  const blockers = getEligibleBlockers(enemy);
   if (blockers.length) {
     s.pendingBlock = {
       attacker,
       targetType: "gig",
       blockersOwner: "player",
+      eligibleBlockerUids: blockers.map(unit => unit.uid),
+      source: "aiAttack"
     };
 
     log(s, `${attacker.name} attacks a Gig`);
@@ -463,6 +475,7 @@ export const aiHelpers = {
   getPlayableUnits,
   getPlayableGear,
   getReadyAiAttackers,
+  getEligibleBlockers,
   rollHighestAvailableFixerDie,
   sellIfDeadHand,
   beginAiTurn,
