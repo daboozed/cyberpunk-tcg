@@ -56,6 +56,50 @@ function playToTrash(player, card) {
   player.trash.push(card);
 }
 
+function rollHighestAvailableFixerDie(s, player) {
+  if (!Array.isArray(player.fixerArea) || player.fixerArea.length === 0) return;
+
+  const die = player.fixerArea.slice().sort((a, b) => b.sides - a.sides)[0];
+  const index = player.fixerArea.findIndex(d => d.id === die.id);
+  const value = Math.ceil(Math.random() * die.sides);
+
+  player.gigDice.push({
+    id: uid(),
+    sides: die.sides,
+    label: die.label,
+    value,
+  });
+
+  player.fixerArea.splice(index, 1);
+  log(s, `Player 2 rolls ${die.label} → ${value}`);
+}
+
+function sellIfDeadHand(s, player) {
+  const playable = player.hand.filter(card => (card.cost || 0) <= getAvailableAiEddies(player));
+  if (playable.length > 0) return;
+
+  const sell = player.hand
+    .filter(card => card.sellable)
+    .sort((a, b) => (b.cost || 0) - (a.cost || 0))[0];
+
+  if (!sell) return;
+
+  removeFromHand(player, sell);
+  player.eddies.push({ id: uid(), spent: false });
+  log(s, `Player 2 sells ${sell.name}`);
+}
+
+function beginAiTurn(s) {
+  const player = s.opponent;
+
+  log(s, "===== BRUTAL AI TURN =====");
+  rollHighestAvailableFixerDie(s, player);
+  log(s, "Player 2 — PLAY PHASE");
+  sellIfDeadHand(s, player);
+
+  return s;
+}
+
 // These are the outside functions the extracted AI will need while gameEngine.js
 // still owns combat, gear triggers, and phase transitions.
 //
@@ -76,13 +120,14 @@ export function createAiTurnDependencies(overrides = {}) {
   };
 }
 
-// Placeholder for the extracted AI turn implementation.
+// Partial extracted AI turn implementation.
 // Keeping this non-live until gameEngine.js is safely wired to import it.
 export function aiTurn(state, dependencies = {}) {
   const s = clone(state);
   const deps = createAiTurnDependencies(dependencies);
 
-  log(s, "AI turn engine placeholder reached");
+  beginAiTurn(s);
+  log(s, "AI turn engine extraction placeholder reached");
 
   if (typeof deps.readyPhase === "function") {
     return deps.readyPhase(s);
@@ -97,6 +142,9 @@ export const aiHelpers = {
   spendAiEddies,
   removeFromHand,
   playToTrash,
+  rollHighestAvailableFixerDie,
+  sellIfDeadHand,
+  beginAiTurn,
   resolveEffect,
   uid,
 };
