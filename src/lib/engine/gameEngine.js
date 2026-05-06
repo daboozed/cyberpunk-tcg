@@ -9,7 +9,7 @@ import {
    
 export { resolveGigBoost } from "../effectResolver";
 import { resolveLegendFlip } from "../legendFlipResolver";
-import { resolveEffect } from "../effectResolver";
+import { resolveEffect, applyEndOfTurnCleanup } from "../effectResolver";
 import { aiTurn as runAiTurn } from "./AiTurnEngine";
   // =========================
   // PHASES
@@ -454,7 +454,7 @@ if (card.type === 'program' && card.effectData) {
   // END TURN
   // =========================
   export function endTurn(state){
-  const s = clone(state);
+  const s = applyEndOfTurnCleanup(clone(state));
 
   s.currentPlayer =
     s.currentPlayer === "player"
@@ -569,14 +569,20 @@ const atkPow = (attacker.power || 0) + (attacker.powerBonus || 0) +
 const defPow = (defender.power || 0) + (defender.powerBonus || 0) +
   ((defender.gear || []).reduce((sum, g) => sum + (g.powerBonus || 0), 0));
 
-    if(atkPow >= defPow){
+    if (atkPow > defPow) {
       const idx = s.opponent.field.findIndex(u => u.uid === defenderUid);
       if(idx >= 0){ const [d] = s.opponent.field.splice(idx, 1); s.opponent.trash.push(d); }
       log(s, `     ${attacker.name} defeats ${defender.name}`);
-    } else {
+    } else if (atkPow < defPow) {
       const idx = s.player.field.findIndex(u => u.uid === attackerUid);
       if(idx >= 0){ const [d] = s.player.field.splice(idx, 1); s.player.trash.push(d); }
       log(s, `     ${attacker.name} is defeated by ${defender.name}`);
+    } else {
+      const attackerIdx = s.player.field.findIndex(u => u.uid === attackerUid);
+      if(attackerIdx >= 0){ const [deadAttacker] = s.player.field.splice(attackerIdx, 1); s.player.trash.push(deadAttacker); }
+      const defenderIdx = s.opponent.field.findIndex(u => u.uid === defenderUid);
+      if(defenderIdx >= 0){ const [deadDefender] = s.opponent.field.splice(defenderIdx, 1); s.opponent.trash.push(deadDefender); }
+      log(s, `     ${attacker.name} and ${defender.name} are both defeated`);
     }
 
     return s;
@@ -590,8 +596,21 @@ export function resolveBlockerDecision(state, blockerUid = null) {
   const {
     attacker,
     targetType,
-    targetUid
+    targetUid,
+    source
   } = s.pendingBlock;
+
+  const finishBlockerDecision = () => {
+    s.pendingBlock = null;
+
+    if (source === "aiAttack") {
+      s.currentPlayer = "player";
+      s.phase = PHASES.PLAY;
+      s.message = "Opponent finished their turn.";
+    }
+
+    return s;
+  };
 
   const blocker = blockerUid
     ? s.player.field.find(u => u.uid === blockerUid)
@@ -622,8 +641,7 @@ export function resolveBlockerDecision(state, blockerUid = null) {
       }
     }
 
-    s.pendingBlock = null;
-    return s;
+    return finishBlockerDecision();
   }
 
   // BLOCK COMBAT
@@ -632,7 +650,7 @@ export function resolveBlockerDecision(state, blockerUid = null) {
   const atkPow = calcPower(attacker);
   const defPow = calcPower(blocker);
 
-  if (atkPow >= defPow) {
+  if (atkPow > defPow) {
     const idx = s.player.field.findIndex(u => u.uid === blocker.uid);
     if (idx >= 0) {
       const [dead] = s.player.field.splice(idx, 1);
@@ -640,7 +658,7 @@ export function resolveBlockerDecision(state, blockerUid = null) {
     }
 
     log(s, `${blocker.name} blocks but is defeated by ${attacker.name}`);
-  } else {
+  } else if (atkPow < defPow) {
     const idx = s.opponent.field.findIndex(u => u.uid === attacker.uid);
     if (idx >= 0) {
       const [dead] = s.opponent.field.splice(idx, 1);
@@ -648,10 +666,23 @@ export function resolveBlockerDecision(state, blockerUid = null) {
     }
 
     log(s, `${blocker.name} blocks and defeats ${attacker.name}`);
+  } else {
+    const blockerIdx = s.player.field.findIndex(u => u.uid === blocker.uid);
+    if (blockerIdx >= 0) {
+      const [deadBlocker] = s.player.field.splice(blockerIdx, 1);
+      s.player.trash.push(deadBlocker);
+    }
+
+    const attackerIdx = s.opponent.field.findIndex(u => u.uid === attacker.uid);
+    if (attackerIdx >= 0) {
+      const [deadAttacker] = s.opponent.field.splice(attackerIdx, 1);
+      s.opponent.trash.push(deadAttacker);
+    }
+
+    log(s, `${blocker.name} blocks ${attacker.name}; both are defeated`);
   }
 
-  s.pendingBlock = null;
-  return s;
+  return finishBlockerDecision();
 }
 
   export function playLegendAsSolo(state, legendIndex){

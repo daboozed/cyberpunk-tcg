@@ -1002,8 +1002,7 @@ return (
       onFieldUnitClick={handleOpponentFieldClick}
       onAttackGig={handleAttackGig}
       onRollGig={handlePickGig}
-      pendingBlock={gs.pendingBlock}
-onBlock={handleBlockerDecision}
+      
     />
 
   </div>
@@ -1024,6 +1023,8 @@ onBlock={handleBlockerDecision}
       disableDice={rolledThisTurn || gs.phase !== PHASES.PICK_GIG}
       selectedAttacker={selectedAttacker}
       playerLabel={isMultiplayer ? myPlayerLabel : "Player 1"}
+      pendingBlock={gs.pendingBlock}
+      onBlock={handleBlockerDecision}
     />
   </div>
 
