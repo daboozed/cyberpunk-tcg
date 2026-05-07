@@ -8,7 +8,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchCards } from "../data/cardService";
+import { useCardData } from "@/hooks/useCardData";
 import { base44 } from "@/api/base44Client";
 import { resolveEffect } from "@/lib/effectResolver";
 import GameModals from "@/components/game/GameModals";
@@ -95,9 +95,7 @@ const passBtn = `
   hover:bg-gray-500
   active:translate-y-[2px] active:shadow-none
 `;
-
-  const [cards, setCards] = useState([]);
-  const [cardMap, setCardMap] = useState({});
+  const { cards, cardMap } = useCardData();
   const [gs, setGs] = useState(() => createInitialState());
 
 window.gs = gs;
@@ -120,20 +118,6 @@ window.setGs = setGs;
   const [floorItCardIndex, setFloorItCardIndex] = useState(null);
   const [peekedLegend, setPeekedLegend] = useState(null);
   const [peekIndex, setPeekIndex] = useState(null);
-
-  // 🔥 LOAD CARD DATA FROM API
-useEffect(() => {
-  fetchCards().then(cards => {
-    console.log("LOADED CARDS:", cards);
-
-    setCards(cards);
-
-    const map = Object.fromEntries(
-  cards.map(c => [c.name.toLowerCase(), c])
-);
-    setCardMap(map);
-  });
-}, []);
 
   // Multiplayer state
   const isGameOver = gs.phase === PHASES.GAME_OVER;
