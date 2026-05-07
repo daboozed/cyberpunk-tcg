@@ -8,7 +8,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCardData } from "@/hooks/useCardData";
+import { useCardData } from "@/hooks/useCardData";   
 import { base44 } from "@/api/base44Client";
 import { resolveEffect } from "@/lib/effectResolver";
 import GameModals from "@/components/game/GameModals";
