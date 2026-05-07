@@ -286,7 +286,7 @@ useReadyPhaseAutoAdvance({
   setRolledThisTurn,
 });
 
-    // Auto-skip mulligan in multiplayer (player2 side)
+  // Auto-skip mulligan in multiplayer (player2 side)
   useEffect(() => {
     if (gs.phase === PHASES.MULLIGAN && isMultiplayer && myRoleRef.current === 'player2') {
       const newGs = mulligan(gs, false);
