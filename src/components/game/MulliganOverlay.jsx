@@ -1,4 +1,5 @@
 import CardHoverPreview from "@/components/game/CardHoverPreview";
+import { PHASES } from "@/lib/engine/gameEngine";
 
 export default function MulliganOverlay({
   gs,
@@ -9,7 +10,7 @@ export default function MulliganOverlay({
   mousePos,
   setMousePos,
 }) {
-  if (gs?.phase !== "MULLIGAN") {
+  if (gs?.phase !== PHASES.MULLIGAN) {
     return null;
   }
 
