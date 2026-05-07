@@ -9,7 +9,23 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CARD_BACK } from "@/lib/cardPool";
 import { PHASES, resolvePendingEffect } from "@/lib/engine/gameEngine";
+import {
+  getAvailableEddies,
+  getAvailableLegendEddies,
+  spendEddies,
+} from "@/lib/engine/EconomyEngine";
 import { resolveEffect } from "@/lib/effectResolver";
+
+function payProgramCost(player, card) {
+  const cost = card?.cost || 0;
+
+  if (getAvailableEddies(player) + getAvailableLegendEddies(player) < cost) {
+    return false;
+  }
+
+  spendEddies(player, cost);
+  return true;
+}
 
   export default function GameModals(props) {
     const {
@@ -289,6 +305,8 @@ import { resolveEffect } from "@/lib/effectResolver";
       const p = newGs.player;
       const card = p.hand[pendingProgram.cardIndex];
 
+      if (!payProgramCost(p, card)) return;
+
       if (card?.effectData) {
         resolveEffect(card.effectData, {
           state: newGs,
@@ -320,6 +338,8 @@ import { resolveEffect } from "@/lib/effectResolver";
       const p = newGs.player;
       const card = p.hand[pendingProgram.cardIndex];
       const selectedGig = newGs.opponent.gigDice[gigIndex];
+
+      if (!payProgramCost(p, card)) return;
 
       if (card?.effectData && selectedGig) {
         resolveEffect(card.effectData, {
@@ -364,6 +384,8 @@ import { resolveEffect } from "@/lib/effectResolver";
                 const newGs = structuredClone(gs);
                 const p = newGs.player;
                 const card = p.hand[pendingProgram.cardIndex];
+
+                if (!payProgramCost(p, card)) return;
 
                 if (card?.effectData) {
                   resolveEffect(card.effectData, {
@@ -421,6 +443,8 @@ import { resolveEffect } from "@/lib/effectResolver";
                 const p = newGs.player;
                 const card = p.hand[pendingProgram.cardIndex];
 
+                if (!payProgramCost(p, card)) return;
+
                 if (card?.effectData) {
                   resolveEffect(card.effectData, {
                     state: newGs,
@@ -467,6 +491,8 @@ import { resolveEffect } from "@/lib/effectResolver";
       const newGs = structuredClone(gs);
       const p = newGs.player;
       const card = p.hand[floorItCardIndex];
+
+      if (!payProgramCost(p, card)) return;
 
       if (card?.effectData) {
         resolveEffect(card.effectData, {
