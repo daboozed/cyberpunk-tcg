@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { buildCustomDeck } from "@/lib/cardPool";
-import { useSinglePlayerSetup } from "@/hooks/useSinglePlayerSetup";
 import {
   createInitialState,
   setupGame,
