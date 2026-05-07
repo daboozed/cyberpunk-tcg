@@ -76,6 +76,20 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
     s.gameLog.push({msg,time:Date.now()});
   }
 
+  function applyFirstPlayerLegendHandicap(s) {
+  const p = s.firstPlayer === "player" ? s.player : s.opponent;
+  const spentLegends = (p.legends || []).slice(0, 2);
+
+  spentLegends.forEach(l => {
+    if (l) l.spent = true;
+  });
+
+  if (spentLegends.length > 0) {
+    const num = s.firstPlayer === "player" ? 1 : 2;
+    log(s, `Player ${num} starts with ${spentLegends.length} spent Legends`);
+  }
+}
+
   function updateStreetCred(s) {
   s.player.streetCred = (s.player.gigDice || []).reduce(
     (total, gig) => total + (gig.value || 0),
@@ -105,6 +119,8 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
       if(s.player.deck.length) s.player.hand.push(s.player.deck.pop());
       if(s.opponent.deck.length) s.opponent.hand.push(s.opponent.deck.pop());
     }
+
+    applyFirstPlayerLegendHandicap(s);
 
     s.phase=PHASES.MULLIGAN;
     return s;
@@ -183,6 +199,10 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
     p.eddies.forEach(e=>e.spent=false);
     p.legends.forEach(l=>l.spent=false);
     p.field.forEach(u=>{u.spent=false;u.justPlayed=false;});
+
+    if (s.turn === 1 && s.currentPlayer === s.firstPlayer) {
+  applyFirstPlayerLegendHandicap(s);
+}
 
     console.log("RESET AI/PLAYER RESOURCES", {
       player: s.currentPlayer,
