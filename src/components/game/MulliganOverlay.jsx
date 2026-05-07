@@ -1,5 +1,6 @@
 import CardHoverPreview from "@/components/game/CardHoverPreview";
 import { PHASES } from "@/lib/engine/gameEngine";
+import { CARD_BACK } from "@/lib/cardPool";
 
 export default function MulliganOverlay({
   gs,
@@ -28,18 +29,23 @@ export default function MulliganOverlay({
               : "Choose whether to redraw your starting hand."}
           </p>
 
-          <div className="mb-5 flex flex-wrap justify-center gap-2">
+          <div className="mb-5 flex flex-wrap justify-center gap-3">
             {(gs?.player?.hand || []).map((card, index) => (
               <button
-                key={`${card?.id || 'card'}-${index}`}
+                key={`${card?.uid || card?.id || 'card'}-${index}`}
                 onMouseEnter={() => setMulliganPreview(card)}
                 onMouseLeave={() => setMulliganPreview(null)}
                 onMouseMove={(e) =>
                   setMousePos({ x: e.clientX, y: e.clientY })
                 }
-                className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-200 hover:border-cyan-400"
+                className="rounded-md border border-zinc-700 bg-zinc-900 p-1 hover:border-cyan-400 hover:shadow-[0_0_14px_rgba(34,211,238,0.45)] transition"
+                title={card?.name || "Unknown Card"}
               >
-                {card?.name || "Unknown Card"}
+                <img
+                  src={card?.imageUrl || CARD_BACK}
+                  alt={card?.name || "Unknown Card"}
+                  className="h-40 w-28 rounded object-cover"
+                />
               </button>
             ))}
           </div>
