@@ -203,7 +203,9 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         !unit.justPlayed &&
         !unit.cantAttack;
 
-      const canBlock = eligibleBlockerUids.includes(unit.uid);
+      const canBlock =
+        eligibleBlockerUids.includes(unit.uid) &&
+        !unit.spent;
 
       return (
         <div key={unit.uid} className="relative flex flex-col items-center">
