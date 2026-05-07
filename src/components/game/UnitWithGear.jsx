@@ -121,7 +121,7 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
           style={{
             position: 'absolute',
             top: CARD_H - 20,
-            right: 3,
+            right: 14,
             zIndex: gear.length + 4,
             width: 18,
             height: 18,
