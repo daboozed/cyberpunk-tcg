@@ -8,7 +8,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCardData } from "@/hooks/useCardData";   
+import { useCardData } from "@/hooks/useCardData";
 import { base44 } from "@/api/base44Client";
 import { resolveEffect } from "@/lib/effectResolver";
 import GameModals from "@/components/game/GameModals";
@@ -18,6 +18,7 @@ import WaitingForOpponentOverlay from "@/components/game/WaitingForOpponentOverl
 import MulliganOverlay from "@/components/game/MulliganOverlay";
 import RulesOverlay from "@/components/game/RulesOverlay";
 import GameActionBar from "@/components/game/GameActionBar";
+import { useReadyPhaseAutoAdvance } from "@/hooks/useReadyPhaseAutoAdvance";
 import {
   createInitialState,
   setupGame,
@@ -277,19 +278,15 @@ console.log("FINAL STATE GIGS:", newGs.player.gigDice.map(g => ({
     base44.entities.Room.update(roomEntityIdRef.current, { game_state: JSON.stringify(forSave) });
   }, [isMultiplayer]);
 
-  // Ready phase auto-trigger (only when it's my turn in multiplayer)
-  useEffect(() => {
-  if (gs.phase === PHASES.READY && (!isMultiplayer || !waitingForOpponent)) {
+useReadyPhaseAutoAdvance({
+  gs,
+  setGs,
+  isMultiplayer,
+  waitingForOpponent,
+  setRolledThisTurn,
+});
 
-    setRolledThisTurn(false); // 🔥 ADD THIS LINE
-
-    const timer = setTimeout(() => setGs(prev => readyPhase(prev)), 600);
-    return () => clearTimeout(timer);
-  }
-}, [gs.phase, gs.turn, waitingForOpponent]);
-
-
-  // Auto-skip mulligan in multiplayer (player2 side)
+    // Auto-skip mulligan in multiplayer (player2 side)
   useEffect(() => {
     if (gs.phase === PHASES.MULLIGAN && isMultiplayer && myRoleRef.current === 'player2') {
       const newGs = mulligan(gs, false);
