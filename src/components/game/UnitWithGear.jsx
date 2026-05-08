@@ -48,7 +48,7 @@ function getTargetGlowStyles(tone) {
 export default function UnitWithGear({ unit, selected, attackTarget = false, targetingGlow = false, targetingGlowTone = "green", blockerGlow = false, onClick }) {
   const gear = unit.gear || [];
   const totalHeight = CARD_H + gear.length * PEEK;
-  const isTargetHighlighted = targetingGlow && !unit.spent;
+  const isTargetHighlighted = targetingGlow;
   const isBlockerHighlighted = blockerGlow && !unit.spent;
   const blockerSource = getBlockerSource(unit);
   const hasBlocker = !!blockerSource;
