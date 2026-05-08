@@ -102,7 +102,6 @@ window.setGs = setGs;
   const [rolledThisTurn, setRolledThisTurn] = useState(false);
   const [mulliganPreview, setMulliganPreview] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [pendingGigBoost, setPendingGigBoost] = useState(null);
   const [pendingProgram, setPendingProgram] = useState(null);
   const [showFloorItModal, setShowFloorItModal] = useState(false);
   const [floorItCardIndex, setFloorItCardIndex] = useState(null);
