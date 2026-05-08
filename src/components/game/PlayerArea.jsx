@@ -175,6 +175,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         targetingGlowTone = "green",
         pendingBlock = null,
         onBlock,
+        targetFilter,
       }) {
 
       const isAttackPhase = phase === PHASES.ATTACK;
@@ -208,6 +209,9 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         eligibleBlockerUids.includes(unit.uid) &&
         !unit.spent;
 
+      const isValidTarget = targetFilter ? targetFilter(unit) : true;
+      const unitTargetingGlow = targetingGlow && isValidTarget;
+
       return (
         <div key={unit.uid} className="relative flex flex-col items-center">
 
@@ -238,7 +242,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
            !!selectedAttacker &&
            !!unit.spent
           }
-          targetingGlow={targetingGlow}
+          targetingGlow={unitTargetingGlow}
           targetingGlowTone={targetingGlowTone}
           blockerGlow={canBlock}
 
@@ -296,6 +300,8 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
     const isFriendlyUnitTargeting =
   !isOpponent &&
   pendingProgram?.targetType === "friendlyUnit";
+
+    const isFloorItTargeting = pendingProgram?.targetType === "spentUnitMax4";
       
       const borderColor =
         isOpponent ? "#ff3366" : "#00ffff";
@@ -574,6 +580,9 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
       onFieldUnitClick={onFieldUnitClick}
       phase={phase}
       isAttackTargetArea={true}
+      targetingGlow={isFloorItTargeting}
+      targetingGlowTone="red"
+      targetFilter={(unit) => unit.spent && (unit.cost || 0) <= 4}
     />
     
   </div>
@@ -631,8 +640,9 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         field={player.field}
         borderColor={borderColor}
         selectedAttacker={selectedAttacker}
-        targetingGlow={pendingProgram?.targetType === "friendlyUnit"}
-        targetingGlowTone={pendingProgram?.card?.id === "p1" ? "blue" : "green"}
+        targetingGlow={pendingProgram?.targetType === "friendlyUnit" || isFloorItTargeting}
+        targetingGlowTone={isFloorItTargeting ? "blue" : pendingProgram?.card?.id === "p1" ? "blue" : "green"}
+        targetFilter={isFloorItTargeting ? (unit) => unit.spent && (unit.cost || 0) <= 4 : undefined}
         pendingBlock={pendingBlock}
         onBlock={onBlock}
         onFieldUnitClick={onFieldUnitClick}
