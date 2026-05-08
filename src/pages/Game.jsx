@@ -85,9 +85,6 @@ const passBtn = `
   const { cardMap } = useCardData();
   const [gs, setGs] = useState(() => createInitialState());
 
-window.gs = gs;
-window.setGs = setGs;
-
   const [actualIndex, setactualIndex] = useState(null);
   const [selectedAttacker, setSelectedAttacker] = useState(null);
   const [detailCard, setDetailCard] = useState(null);
@@ -149,14 +146,11 @@ useReadyPhaseAutoAdvance({
 
   const handlePickGig = (player, index, result = null) => {
   if (rolledThisTurn) {
-    console.log("ROLL BLOCKED: already rolled this turn");
     return;
   }
 
   const side = player === "opponent" ? gs.opponent : gs.player;
 const die = side?.fixerArea?.[index];
-
-  console.log("TARGET DIE:", die);
 
   if (!die) return;
 
@@ -169,8 +163,6 @@ const die = side?.fixerArea?.[index];
     finalRoll,
     player === "opponent" ? "opponent" : "player"
   );
-
-  console.log("NEW VALUE:", newGs[player].gigDice[index]);
 
   setGs(newGs);
   setRolledThisTurn(true);
@@ -206,9 +198,6 @@ const die = side?.fixerArea?.[index];
   const card = gs.player.hand[index];
     
   if (!card) return;
-
-    console.log("CARD PLAYED:", card);
-    console.log("API DATA:", card.apiData);
 
   // GEAR
   if (card.type === 'gear') {
