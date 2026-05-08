@@ -86,7 +86,7 @@ const passBtn = `
   hover:bg-gray-500
   active:translate-y-[2px] active:shadow-none
 `;
-  const { cards, cardMap } = useCardData();
+  const { cardMap } = useCardData();
   const [gs, setGs] = useState(() => createInitialState());
 
 window.gs = gs;
