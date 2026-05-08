@@ -6,10 +6,7 @@ export async function fetchCards() {
   );
 
   const json = await res.json();
-
-  console.log("RAW API RESPONSE:", json);
-
-  const cardArray = json.items; // 🔥 FIXED
+  const cardArray = json.items;
 
   return cardArray.map(adaptCard);
 }
