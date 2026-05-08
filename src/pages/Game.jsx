@@ -8,6 +8,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useGameViewState } from "@/hooks/useGameViewState";
 import { useCardData } from "@/hooks/useCardData";
 import { useSinglePlayerSetup } from "@/hooks/useSinglePlayerSetup";
 import { base44 } from "@/api/base44Client";
