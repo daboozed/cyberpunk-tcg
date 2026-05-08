@@ -3,7 +3,6 @@ import BlockerDecisionModal from "@/components/game/BlockerDecisionModal";
 import AdjustGigModal from "@/components/game/AdjustGigModal";
 import GigStealModal from "@/components/game/GigStealModal";
 import ChooseGigModal from "@/components/game/ChooseGigModal";
-import FloorItModal from "@/components/game/FloorItModal";
 import CardHoverPreview from "@/components/game/CardHoverPreview";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -47,11 +46,6 @@ function payProgramCost(player, card) {
       setGs,
       setactualIndex,
 
-      floorItCardIndex,
-      setFloorItCardIndex,
-      showFloorItModal,
-      setShowFloorItModal,
-
       hoveredViktorCard,
       setHoveredViktorCard,
       mousePos,
@@ -62,14 +56,12 @@ function payProgramCost(player, card) {
 
     return (
       <>
-        {/* CARD DETAIL */}
         <CardDetailModal
           card={detailCard}
           open={!!detailCard}
           onClose={() => setDetailCard(null)}
         />
 
-        {/* BLOCKER */}
         {gs.phase === PHASES.BLOCKER_DECISION &&
           gs.pendingAttackers?.length > 0 && (
             <BlockerDecisionModal
@@ -80,7 +72,6 @@ function payProgramCost(player, card) {
             />
           )}
 
-        {/* LEGEND PEEK */}
         {gs.pendingLegendPeek && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
             <div className="bg-card border border-cyan-500 rounded-xl p-6 max-w-4xl w-full mx-4">
@@ -136,7 +127,6 @@ function payProgramCost(player, card) {
           </div>
         )}
 
-        {/* ADJUST GIG */}
         {gs.showAdjustGigModal && (
           <AdjustGigModal
             rivalGigs={gs.opponent.gigDice}
@@ -146,7 +136,6 @@ function payProgramCost(player, card) {
           />
         )}
 
-        {/* GIG STEAL */}
         {gs.pendingGigSteal && (
           <GigStealModal
             availableGigs={gs.opponent.gigDice}
@@ -162,7 +151,6 @@ function payProgramCost(player, card) {
           />
         )}
 
-        {/* VIKTOR SEARCH */}
         {gs.pendingLegendFlip?.type === "viktor_search" && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
             <div className="bg-card border border-cyan-500 rounded-xl p-4 max-w-lg mx-4">
@@ -278,7 +266,6 @@ function payProgramCost(player, card) {
           </div>
         )}
 
-        {/* GENERIC TARGET */}
         {gs.awaitingTarget && !pendingProgram && (
   <ChooseGigModal
     gigs={gs.player.gigDice}
@@ -291,9 +278,7 @@ function payProgramCost(player, card) {
     }}
   />
 )}
-  {/* PROGRAM MODALS */}
 
-  {/* INDUSTRIAL ASSEMBLY */}
 {pendingProgram?.effect === "p3" && (
   <ChooseGigModal
     gigs={gs.player.gigDice}
@@ -328,7 +313,6 @@ function payProgramCost(player, card) {
   />
 )}
         
-  {/* AFTERPARTY */}
 {pendingProgram?.effect === "p4" && (
   <AdjustGigModal
     rivalGigs={gs.opponent.gigDice}
@@ -362,7 +346,6 @@ function payProgramCost(player, card) {
   />
 )}
 
-  {/* CYBERPSYCHOSIS */}
 {pendingProgram?.effect === "p5" && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
     <div className="bg-card border border-yellow-500 rounded-xl p-6 max-w-lg w-full mx-4">
@@ -420,7 +403,6 @@ function payProgramCost(player, card) {
   </div>
 )}
 
-  {/* CORPORATE SURVEILLANCE */}
 {pendingProgram?.effect === "p7" && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
     <div className="bg-card border border-green-500 rounded-xl p-6 max-w-lg w-full mx-4">
@@ -476,47 +458,6 @@ function payProgramCost(player, card) {
       </Button>
     </div>
   </div>
-)}
-
-        {/* FLOOR IT */}
-{showFloorItModal && (
-  <FloorItModal
-    friendlyUnits={gs.player.field.filter(
-      (u) => u.spent && (u.cost || 0) <= 4
-    )}
-    rivalUnits={gs.opponent.field.filter(
-      (u) => u.spent && (u.cost || 0) <= 4
-    )}
-    onSelect={(unit) => {
-      const newGs = structuredClone(gs);
-      const p = newGs.player;
-      const card = p.hand[floorItCardIndex];
-
-      if (!payProgramCost(p, card)) return;
-
-      if (card?.effectData) {
-        resolveEffect(card.effectData, {
-          state: newGs,
-          player: "player",
-          targetUid: unit.uid
-        });
-      }
-
-      const [removed] = p.hand.splice(floorItCardIndex, 1);
-      p.trash.push(removed);
-
-      setGs(newGs);
-      setShowFloorItModal(false);
-      setFloorItCardIndex(null);
-      setactualIndex(null);
-
-      if (isMultiplayer) mpSave(newGs);
-    }}
-    onCancel={() => {
-      setShowFloorItModal(false);
-      setFloorItCardIndex(null);
-    }}
-  />
 )}
       </>
     );
