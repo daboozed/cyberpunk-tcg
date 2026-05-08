@@ -44,7 +44,7 @@ import {
   getAvailableEddies,
   getAvailableLegendEddies,
 } from "@/lib/engine/EconomyEngine";
-import { buildCustomDeck, CARD_BACK } from "@/lib/cardPool";
+import { buildCustomDeck } from "@/lib/cardPool";
 import {
   getOrCreatePlayerId,
   flipState,
