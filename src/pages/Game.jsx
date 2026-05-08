@@ -112,7 +112,6 @@ window.setGs = setGs;
   const isGameOver = gs.phase === PHASES.GAME_OVER;
   const disableActions = isMultiplayer && waitingForOpponent;
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
-  const [mpSetupDone, setMpSetupDone] = useState(false);
   const [myPlayerLabel, setMyPlayerLabel] = useState('Player 1');
   const [oppPlayerLabel, setOppPlayerLabel] = useState('Player 2');
   const myRoleRef = useRef(null);
@@ -167,11 +166,6 @@ window.setGs = setGs;
         newGs.whose_turn = newGs.currentPlayer === 'player' ? 'player1' : 'player2';
         setWaitingForOpponent(newGs.whose_turn !== 'player1');
 
-console.log("FINAL STATE GIGS:", newGs.player.gigDice.map(g => ({
-  id: g.id,
-  value: g.value
-})));
-
         setGs(newGs);
         await base44.entities.Room.update(roomId, { game_state: JSON.stringify(newGs) });
       } else {
@@ -192,18 +186,10 @@ console.log("FINAL STATE GIGS:", newGs.player.gigDice.map(g => ({
         }
       });
       unsubRef.current = unsub;
-      setMpSetupDone(true);
     };
 
     setup();
     return () => { if (unsubRef.current) unsubRef.current(); };
-  }, []);
-
-  const saveStateToRoom = useCallback(async (localGs) => {
-    if (!roomEntityIdRef.current) return;
-    const role = myRoleRef.current;
-    const canonical = role === 'player2' ? flipState(localGs) : { ...localGs };
-    await base44.entities.Room.update(roomEntityIdRef.current, { game_state: JSON.stringify(canonical) });
   }, []);
 
   const mpSave = useCallback((newGs, switchTurn = false) => {
@@ -293,7 +279,6 @@ const die = side?.fixerArea?.[index];
   if (index === null || index === undefined) return;
 
   const card = gs.player.hand[index];
-  const effect = card.apiData?.effect;
     
   if (!card) return;
 
@@ -397,13 +382,6 @@ const die = side?.fixerArea?.[index];
 
   if (isMultiplayer) mpSave(newGs);
 }, [gs, isMultiplayer, mpSave]);
-
-  // Find callable solo legend
-  const callableSoloLegend = gs.phase === PHASES.PLAY ? gs.player.legends.findIndex(l => 
-    l.faceUp && l.keywords?.includes('goSolo') && !l.spent && 
-    (getAvailableEddies(gs.player) + getAvailableLegendEddies(gs.player)) >= (l.cost || 0)
-  ) : -1;
-  const canCallSolo = callableSoloLegend !== -1 && !disableActions;
 
   const handleFieldUnitClick = useCallback((unit) => {
   // Gear targeting
@@ -651,7 +629,6 @@ setGs(newGs);
   const canSell = actualIndex !== null && gs.player?.hand[actualIndex]?.sellable && !gs.soldThisTurn;
   const canPlay = actualIndex !== null && gs.player?.hand[actualIndex] &&
     (getAvailableEddies(gs.player) + getAvailableLegendEddies(gs.player)) >= (gs.player.hand[actualIndex]?.cost || 0);
-const canStartAttack = gs.phase === PHASES.PLAY;
 
 // 🔥 PHASE BUTTON LOGIC
 let phaseButtonLabel = "ATTACK PHASE";
@@ -713,11 +690,6 @@ if (gs.phase === PHASES.ATTACK) {
     if (gs.phase === PHASES.READY) return 'Ready phase — preparing your turn...';
     return '';
   }
-
-  console.log("PLAYER FIELD:", gs.player.field);
-console.log("OPP FIELD:", gs.opponent.field);
-console.log("SAME ARRAY?", gs.player.field === gs.opponent.field);
-console.log("SAME PLAYER OBJ?", gs.player === gs.opponent);
 
 return (
 <div className="min-h-screen w-screen flex flex-col relative overflow-y-auto scanlines" style={{ background: '#020d18' }}>
