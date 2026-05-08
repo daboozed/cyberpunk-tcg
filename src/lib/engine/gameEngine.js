@@ -625,8 +625,9 @@ export function resolveBlockerDecision(state, blockerUid = null) {
 
     if (source === "aiAttack") {
       s.currentPlayer = "player";
-      s.phase = PHASES.PLAY;
+      s.turn++;
       s.message = "Opponent finished their turn.";
+      return readyPhase(s);
     }
 
     return s;
