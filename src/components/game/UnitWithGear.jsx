@@ -24,13 +24,28 @@ function getBlockerSource(unit) {
   return null;
 }
 
-export default function UnitWithGear({ unit, selected, attackTarget = false, targetingGlow = false, blockerGlow = false, onClick }) {
+function getTargetGlowStyles(tone) {
+  if (tone === "blue") {
+    return {
+      filter: "drop-shadow(0 0 6px rgba(0,191,255,0.75)) drop-shadow(0 0 14px rgba(0,191,255,0.48))",
+      boxShadow: "0 0 0 2px rgba(0,191,255,0.82), 0 0 14px rgba(0,191,255,0.58), 0 0 24px rgba(0,191,255,0.32)",
+    };
+  }
+
+  return {
+    filter: "drop-shadow(0 0 5px rgba(57,255,20,0.48)) drop-shadow(0 0 9px rgba(57,255,20,0.35))",
+    boxShadow: "0 0 0 1px rgba(57,255,20,0.48), 0 0 9px rgba(57,255,20,0.43), 0 0 16px rgba(57,255,20,0.23)",
+  };
+}
+
+export default function UnitWithGear({ unit, selected, attackTarget = false, targetingGlow = false, targetingGlowTone = "green", blockerGlow = false, onClick }) {
   const gear = unit.gear || [];
   const totalHeight = CARD_H + gear.length * PEEK;
   const isTargetHighlighted = targetingGlow && !unit.spent;
   const isBlockerHighlighted = blockerGlow && !unit.spent;
   const blockerSource = getBlockerSource(unit);
   const hasBlocker = !!blockerSource;
+  const targetGlowStyles = isTargetHighlighted ? getTargetGlowStyles(targetingGlowTone) : null;
 
   return (
     <div
@@ -47,14 +62,14 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
         filter: isBlockerHighlighted
           ? 'drop-shadow(0 0 5px rgba(156,163,175,0.65)) drop-shadow(0 0 10px rgba(156,163,175,0.45))'
           : isTargetHighlighted
-            ? 'drop-shadow(0 0 5px rgba(57,255,20,0.48)) drop-shadow(0 0 9px rgba(57,255,20,0.35))'
+            ? targetGlowStyles.filter
             : attackTarget
               ? 'drop-shadow(0 0 8px rgba(239,68,68,0.65)) drop-shadow(0 0 14px rgba(239,68,68,0.45))'
               : 'none',
         boxShadow: isBlockerHighlighted
           ? '0 0 0 2px rgba(156,163,175,0.7), 0 0 12px rgba(156,163,175,0.5), 0 0 20px rgba(156,163,175,0.28)'
           : isTargetHighlighted
-            ? '0 0 0 1px rgba(57,255,20,0.48), 0 0 9px rgba(57,255,20,0.43), 0 0 16px rgba(57,255,20,0.23)'
+            ? targetGlowStyles.boxShadow
             : attackTarget
               ? '0 0 0 2px rgba(239,68,68,0.65), 0 0 12px rgba(239,68,68,0.45)'
               : 'none',
