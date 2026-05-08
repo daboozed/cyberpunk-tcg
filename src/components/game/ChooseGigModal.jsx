@@ -27,7 +27,6 @@ export default function ChooseGigModal({ gigs, amount, title, description, onCho
   key={die.id || i}
   type="button"
   onClick={() => {
-    console.log("MODAL CLICK", die.id);
     onChoose?.(die.id);
   }}
   className="p-4 border border-red-500 bg-black text-white"
