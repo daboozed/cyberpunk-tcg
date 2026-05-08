@@ -43,7 +43,6 @@ import {
 import {
   getAvailableEddies,
   getAvailableLegendEddies,
-  getUnitPower
 } from "@/lib/engine/EconomyEngine";
 import { buildCustomDeck, CARD_BACK } from "@/lib/cardPool";
 import {
