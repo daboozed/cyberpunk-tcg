@@ -172,9 +172,13 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
        phase,
         isAttackTargetArea = false,
         targetingGlow = false,
+        targetingGlowTone = "green",
+        pendingBlock = null,
+        onBlock,
       }) {
 
       const isAttackPhase = phase === PHASES.ATTACK;
+      const eligibleBlockerUids = pendingBlock?.eligibleBlockerUids || [];
 
       return (
         <div
@@ -200,15 +204,28 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         !unit.justPlayed &&
         !unit.cantAttack;
 
+      const canBlock =
+        eligibleBlockerUids.includes(unit.uid) &&
+        !unit.spent;
+
       return (
         <div key={unit.uid} className="relative flex flex-col items-center">
 
-          {canAttack && (
+          {canAttack && !pendingBlock && (
             <button
               onClick={() => onFieldUnitClick?.(unit)}
               className="absolute -top-3 z-10 bg-red-600 text-white text-[10px] px-2 py-[2px] rounded border border-red-300 shadow-[0_0_10px_rgba(255,0,0,0.8)] hover:scale-110 transition"
             >
               ATTACK
+            </button>
+          )}
+
+          {canBlock && (
+            <button
+              onClick={() => onBlock?.(unit.uid)}
+              className="absolute -top-3 z-10 bg-gray-600 text-white text-[10px] px-2 py-[2px] rounded border border-gray-300 shadow-[0_0_10px_rgba(156,163,175,0.85)] hover:scale-110 transition"
+            >
+              BLOCK
             </button>
           )}
 
@@ -222,8 +239,10 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
            !!unit.spent
           }
           targetingGlow={targetingGlow}
+          targetingGlowTone={targetingGlowTone}
+          blockerGlow={canBlock}
 
-  onClick={() => onFieldUnitClick?.(unit)}
+  onClick={() => canBlock ? onBlock?.(unit.uid) : onFieldUnitClick?.(unit)}
 />
         </div>
       );
@@ -238,6 +257,8 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         phase, 
         onLegendClick,
         pendingProgram,
+        pendingBlock = null,
+        onBlock,
         onFieldUnitClick,
         disableDice = false,
         onFixerDieClick,  
@@ -611,6 +632,9 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         borderColor={borderColor}
         selectedAttacker={selectedAttacker}
         targetingGlow={pendingProgram?.targetType === "friendlyUnit"}
+        targetingGlowTone={pendingProgram?.card?.id === "p1" ? "blue" : "green"}
+        pendingBlock={pendingBlock}
+        onBlock={onBlock}
         onFieldUnitClick={onFieldUnitClick}
         phase={phase}
       />
@@ -640,7 +664,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
     style={{
       position: "relative",
       top: "35px",     // move up/down
-      left: "250px",    // move left/right
+      left: "250px",    // left / right
     }}
   >
 
