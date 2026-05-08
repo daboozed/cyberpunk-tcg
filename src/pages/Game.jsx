@@ -581,7 +581,6 @@ setGs(newGs);
       if (isMultiplayer) mpSave(updated);
       return updated;
     });
-    setShowAdjustGigModal(false);
   }, [isMultiplayer, mpSave]);
 
   const handleLegendPeekClose = useCallback(() => {
