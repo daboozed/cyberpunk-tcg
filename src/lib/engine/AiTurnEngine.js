@@ -1,14 +1,6 @@
 import { clone, uid } from "./utils";
 import { resolveEffect } from "../effectResolver";
 
-// =========================
-// AI TURN ENGINE
-// =========================
-//
-// This module is the dedicated home for opponent AI turn logic.
-// The current live AI implementation still lives in gameEngine.js until
-// the extraction is completed and wired safely.
-
 function log(s, msg) {
   s.gameLog.push({ msg, time: Date.now() });
 }
@@ -18,6 +10,23 @@ function getPower(unit) {
     (unit.power || 0) +
     (unit.powerBonus || 0) +
     ((unit.gear || []).reduce((sum, gear) => sum + (gear.powerBonus || 0), 0))
+  );
+}
+
+function hasKeyword(card, keyword) {
+  const keywords = [
+    ...(card?.keywords || []),
+    ...(card?.effect?.keywords || []),
+    ...(card?.effectData?.keywords || []),
+  ];
+
+  return keywords.includes(keyword);
+}
+
+function hasBlocker(unit) {
+  return (
+    hasKeyword(unit, "blocker") ||
+    (unit?.gear || []).some(gear => hasKeyword(gear, "blocker"))
   );
 }
 
@@ -83,6 +92,7 @@ function getReadyAiAttackers(player) {
 function getEligibleBlockers(enemy, excludedUid = null) {
   return (enemy.field || []).filter(unit =>
     unit &&
+    hasBlocker(unit) &&
     !unit.spent &&
     !unit.cantBlock &&
     unit.uid !== excludedUid
@@ -426,16 +436,6 @@ function beginAiTurn(s) {
   return s;
 }
 
-// These are the outside functions the extracted AI will need while gameEngine.js
-// still owns combat, gear triggers, and phase transitions.
-//
-// Expected dependency shape for the final extraction:
-// {
-//   readyPhase: (state) => state,
-//   triggerGearEffects: (state, unit, triggerName) => void,
-//   resolveEffect: (effectData, context) => void,
-//   uid: () => string,
-// }
 export function createAiTurnDependencies(overrides = {}) {
   return {
     readyPhase: null,
@@ -446,8 +446,6 @@ export function createAiTurnDependencies(overrides = {}) {
   };
 }
 
-// Extracted AI turn implementation. It is not wired live until gameEngine.js
-// imports this function and removes the older inline aiTurn implementation.
 export function aiTurn(state, dependencies = {}) {
   const s = clone(state);
   const deps = createAiTurnDependencies(dependencies);
@@ -466,6 +464,7 @@ export function aiTurn(state, dependencies = {}) {
 
 export const aiHelpers = {
   getPower,
+  hasBlocker,
   getAvailableAiEddies,
   spendAiEddies,
   removeFromHand,
