@@ -32,7 +32,6 @@ import {
   resolvePendingEffect,
   startAttackPhase,
   attackUnit,
-  attackRival,
   endTurn,
   resolveBlockerDecision,
   resolveAfterpartyAdjustment,
