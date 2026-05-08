@@ -6,12 +6,12 @@
 // UI state, action handlers, overlays, and board rendering.
 // Split gradually using the documented plan.
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameViewState } from "@/hooks/useGameViewState";
 import { useCardData } from "@/hooks/useCardData";
 import { useSinglePlayerSetup } from "@/hooks/useSinglePlayerSetup";
-import { base44 } from "@/api/base44Client";
+import { useMultiplayerRoomSync } from "@/hooks/useMultiplayerRoomSync";
 import { resolveEffect } from "@/lib/effectResolver";
 import GameModals from "@/components/game/GameModals";
 import GameTopBar from "@/components/game/GameTopBar";
@@ -46,11 +46,6 @@ import {
   getAvailableLegendEddies,
 } from "@/lib/engine/EconomyEngine";
 import { buildCustomDeck } from "@/lib/cardPool";
-import {
-  getOrCreatePlayerId,
-  flipState,
-  makePlayerState,
-} from "@/lib/game/gamePageUtils";
 import PlayerArea from "@/components/game/PlayerArea";
 import HandArea from "@/components/game/HandArea";
 import GameLog from "@/components/game/GameLog";
@@ -109,15 +104,20 @@ window.setGs = setGs;
   const [peekedLegend, setPeekedLegend] = useState(null);
   const [peekIndex, setPeekIndex] = useState(null);
 
-  // Multiplayer state
   const isGameOver = gs.phase === PHASES.GAME_OVER;
+  const {
+    waitingForOpponent,
+    setWaitingForOpponent,
+    myPlayerLabel,
+    myRoleRef,
+    mpSave,
+  } = useMultiplayerRoomSync({
+    isMultiplayer,
+    roomId,
+    navigate,
+    setGs,
+  });
   const disableActions = isMultiplayer && waitingForOpponent;
-  const [waitingForOpponent, setWaitingForOpponent] = useState(false);
-  const [myPlayerLabel, setMyPlayerLabel] = useState('Player 1');
-  const [oppPlayerLabel, setOppPlayerLabel] = useState('Player 2');
-  const myRoleRef = useRef(null);
-  const roomEntityIdRef = useRef(null);
-  const unsubRef = useRef(null);
 
   useSinglePlayerSetup({
   isMultiplayer,
@@ -125,82 +125,6 @@ window.setGs = setGs;
   cardMap,
   setGs,
 });
-  
-  // Multiplayer setup
-  useEffect(() => {
-    if (!isMultiplayer) return;
-
-    const setup = async () => {
-      const myId = getOrCreatePlayerId();
-      roomEntityIdRef.current = roomId;
-
-      const rooms = await base44.entities.Room.filter({ id: roomId });
-      if (!rooms || rooms.length === 0) { navigate('/'); return; }
-      const room = rooms[0];
-
-      const role = room.player1_id === myId ? 'player1' : 'player2';
-      myRoleRef.current = role;
-      setMyPlayerLabel(role === 'player1' ? 'Player 1' : 'Player 2');
-      setOppPlayerLabel(role === 'player1' ? 'Player 2' : 'Player 1');
-
-      if (room.game_state) {
-        let loadedGs = JSON.parse(room.game_state);
-        if (role === 'player2') loadedGs = flipState(loadedGs);
-        setWaitingForOpponent(loadedGs.whose_turn !== role);
-        setGs(loadedGs);
-      } else if (role === 'player1') {
-        // Player 1 initializes game state
-        const hostDeckData = JSON.parse(room.host_deck || 'null');
-        const guestDeckData = JSON.parse(room.guest_deck || 'null');
-
-        let newGs = createInitialState();
-        if (hostDeckData && guestDeckData) {
-          const pd = buildCustomDeck(hostDeckData.legends, hostDeckData.mainDeck, 0);
-          const od = buildCustomDeck(guestDeckData.legends, guestDeckData.mainDeck, 1);
-          newGs.player = makePlayerState(pd, 'player');
-          newGs.opponent = makePlayerState(od, 'opponent');
-        }
-        newGs.isMultiplayer = true;
-        newGs = setupGame(newGs);
-        // Auto-skip mulligan
-        newGs = mulligan(newGs, false);
-        newGs.whose_turn = newGs.currentPlayer === 'player' ? 'player1' : 'player2';
-        setWaitingForOpponent(newGs.whose_turn !== 'player1');
-
-        setGs(newGs);
-        await base44.entities.Room.update(roomId, { game_state: JSON.stringify(newGs) });
-      } else {
-        // Player 2 waits for player 1 to initialize
-        setWaitingForOpponent(true);
-      }
-
-      // Subscribe to room updates
-      const unsub = base44.entities.Room.subscribe(event => {
-        if (event.id !== roomId) return;
-        if (!event.data?.game_state) return;
-        const latestGs = JSON.parse(event.data.game_state);
-        const isMyTurn = latestGs.whose_turn === myRoleRef.current;
-        if (isMyTurn || latestGs.phase === PHASES.GAME_OVER) {
-          let displayGs = myRoleRef.current === 'player2' ? flipState(latestGs) : latestGs;
-          setGs(displayGs);
-          setWaitingForOpponent(false);
-        }
-      });
-      unsubRef.current = unsub;
-    };
-
-    setup();
-    return () => { if (unsubRef.current) unsubRef.current(); };
-  }, []);
-
-  const mpSave = useCallback((newGs, switchTurn = false) => {
-    if (!isMultiplayer) return;
-    let forSave = myRoleRef.current === 'player2' ? flipState(newGs) : { ...newGs };
-    if (switchTurn) {
-      forSave.whose_turn = myRoleRef.current === 'player1' ? 'player2' : 'player1';
-    }
-    base44.entities.Room.update(roomEntityIdRef.current, { game_state: JSON.stringify(forSave) });
-  }, [isMultiplayer]);
 
 useReadyPhaseAutoAdvance({
   gs,
@@ -534,12 +458,10 @@ const handleAttackGig = useCallback((gigIndex) => {
 const newGs = endTurn(gs);
 setGs(newGs);
     if (isMultiplayer) {
-      let forSave = myRoleRef.current === 'player2' ? flipState(newGs) : { ...newGs };
-      forSave.whose_turn = myRoleRef.current === 'player1' ? 'player2' : 'player1';
-      base44.entities.Room.update(roomEntityIdRef.current, { game_state: JSON.stringify(forSave) });
+      mpSave(newGs, true);
       setWaitingForOpponent(true);
     }
-  }, [gs, isMultiplayer]);
+  }, [gs, isMultiplayer, mpSave, setWaitingForOpponent]);
 
   const handleBlockerDecision = useCallback((blockerUid) => {
     const newGs = resolveBlockerDecision(gs, blockerUid);
