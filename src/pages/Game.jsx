@@ -131,7 +131,6 @@ useReadyPhaseAutoAdvance({
   setRolledThisTurn,
 });
 
-  // Auto-skip mulligan in multiplayer (player2 side)
   useEffect(() => {
     if (gs.phase === PHASES.MULLIGAN && isMultiplayer && myRoleRef.current === 'player2') {
       const newGs = mulligan(gs, false);
@@ -181,8 +180,6 @@ const die = side?.fixerArea?.[index];
   if (index === null || index === undefined) return;
 
   const card = gs.player.hand[index];
-
-  // 🔥 HARD BLOCK — ONLY SELL IF EXPLICITLY ALLOWED
   if (!card || card.sellable !== true) return;
 
   const newGs = sellCard(gs, index);
@@ -199,7 +196,6 @@ const die = side?.fixerArea?.[index];
     
   if (!card) return;
 
-  // GEAR
   if (card.type === 'gear') {
     if (gs.player.field.length === 0) {
       setGs(prev => ({ ...prev, message: 'No units on the field to equip Gear to!' }));
@@ -210,15 +206,12 @@ const die = side?.fixerArea?.[index];
     return;
   }
 
-  // PROGRAMS
   if (card.type === "program" && card.id === "p1") {
-  // TOGGLE OFF if already targeting
   if (pendingProgram?.targetType === "friendlyUnit") {
     setPendingProgram(null);
     return;
   }
 
-  // TOGGLE ON
   setPendingProgram({
     card,
     cardIndex: index,
@@ -233,8 +226,11 @@ const die = side?.fixerArea?.[index];
     const rivalSpent = gs.opponent.field.filter(u => u.spent && (u.cost || 0) <= 4);
     if (friendlySpent.length === 0 && rivalSpent.length === 0) return;
 
-    setFloorItCardIndex(index);
-    setShowFloorItModal(true);
+    setPendingProgram({
+      card,
+      cardIndex: index,
+      targetType: "spentUnitMax4"
+    });
     return;
   }
 
@@ -265,7 +261,6 @@ const die = side?.fixerArea?.[index];
     return;
   }
 
-  // DEFAULT PLAY
   const newGs = playCard(gs, index);
   setGs(newGs);
   setactualIndex(null);
@@ -297,8 +292,39 @@ const die = side?.fixerArea?.[index];
   if (isMultiplayer) mpSave(newGs);
 }, [gs, isMultiplayer, mpSave]);
 
+  const resolveFloorItTarget = useCallback((ownerKey, unit) => {
+    if (pendingProgram?.targetType !== "spentUnitMax4") return false;
+    if (!unit?.spent || (unit.cost || 0) > 4) return false;
+
+    const newGs = structuredClone(gs);
+    const owner = newGs[ownerKey];
+    const unitIndex = owner.field.findIndex(u => u.uid === unit.uid);
+    if (unitIndex === -1) return true;
+
+    const [returnedUnit] = owner.field.splice(unitIndex, 1);
+    returnedUnit.spent = false;
+    owner.hand.push(returnedUnit);
+
+    const program = newGs.player.hand[pendingProgram.cardIndex];
+    if (program) {
+      newGs.player.hand.splice(pendingProgram.cardIndex, 1);
+      newGs.player.trash.push(program);
+    }
+
+    newGs.message = `Floor It returned ${returnedUnit.name} to hand.`;
+
+    setGs(newGs);
+    setPendingProgram(null);
+    setactualIndex(null);
+    setSelectedAttacker(null);
+
+    if (isMultiplayer) mpSave(newGs);
+    return true;
+  }, [gs, pendingProgram, isMultiplayer, mpSave]);
+
   const handleFieldUnitClick = useCallback((unit) => {
-  // Gear targeting
+  if (resolveFloorItTarget("player", unit)) return;
+
   if (gearTarget !== null && gs.phase === PHASES.PLAY) {
     const newGs = playCard(gs, gearTarget, unit.uid);
     setGs(newGs);
@@ -310,7 +336,6 @@ const die = side?.fixerArea?.[index];
     return;
   }
 
-  // Friendly unit targeting
   if (pendingProgram?.targetType === "friendlyUnit") {
   const newGs = structuredClone(gs);
   const p = newGs.player;
@@ -336,7 +361,6 @@ const die = side?.fixerArea?.[index];
   return;
 }
 
-  // ATTACK PHASE: select one of your ready units as the attacker
 if (gs.phase === PHASES.ATTACK) {
   if (!unit || unit.spent || unit.justPlayed || unit.cantAttack) return;
 
@@ -348,18 +372,17 @@ if (gs.phase === PHASES.ATTACK) {
   return;
 }
 
-// Default: clear selection outside attack flow
 setSelectedAttacker(null);
 setactualIndex(null);
-  }, [gs, gearTarget, pendingProgram, isMultiplayer, mpSave]);
+  }, [gs, gearTarget, pendingProgram, isMultiplayer, mpSave, resolveFloorItTarget]);
 
   const handleOpponentFieldClick = useCallback((unit) => {
 
-  // 🔥 CORPORATE SURVEILLANCE / TARGETED PROGRAMS
+  if (resolveFloorItTarget("opponent", unit)) return;
+
   if (pendingProgram) {
     const card = pendingProgram.card;
 
-    // p7 = Corporate Surveillance
     if (
       card?.id === "p7" &&
       !unit.spent &&
@@ -376,7 +399,6 @@ setactualIndex(null);
     }
   }
 
-  // NORMAL ATTACK FLOW
   if (gs.phase === PHASES.ATTACK && selectedAttacker && unit.spent) {
     const newGs = attackUnit(gs, selectedAttacker, unit.uid);
 
@@ -394,7 +416,8 @@ setactualIndex(null);
   pendingProgram,
   selectedAttacker,
   isMultiplayer,
-  mpSave
+  mpSave,
+  resolveFloorItTarget
 ]);
 
 const handleAttackGig = useCallback((gigIndex) => {
@@ -426,7 +449,7 @@ const handleAttackGig = useCallback((gigIndex) => {
     setGearTarget(null);
     setRolledThisTurn(false);
     
-    if (!isMultiplayer && gs.currentPlayer === "player") {    setGs(prev => ({     ...prev,     message: "Opponent is thinking..."   }));    // Step 1: switch turn first   setTimeout(() => {     const passTurn = {       ...gs,       currentPlayer: "opponent"     };      setGs(passTurn);      // Step 2: let AI act after render     setTimeout(() => {       const aiState = readyPhase(passTurn);        setGs({         ...aiState,         message: "Opponent finished their turn."       });      }, 900);    }, 500);    return; }
+    if (!isMultiplayer && gs.currentPlayer === "player") {    setGs(prev => ({     ...prev,     message: "Opponent is thinking..."   }));    setTimeout(() => {     const passTurn = {       ...gs,       currentPlayer: "opponent"     };      setGs(passTurn);      setTimeout(() => {       const aiState = readyPhase(passTurn);        setGs({         ...aiState,         message: "Opponent finished their turn."       });      }, 900);    }, 500);    return; }
   setGs(prev => ({
     ...prev,
     message: "Opponent is thinking..."
@@ -561,12 +584,10 @@ const {
 
 return (
 <div className="min-h-screen w-screen flex flex-col relative overflow-y-auto scanlines" style={{ background: '#020d18' }}>
-  {/* Grid background */}
   <div className="absolute inset-0 pointer-events-none" style={{
     backgroundImage: 'linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.04) 1px, transparent 1px)',
     backgroundSize: '40px 40px'
   }} />
-  {/* Glow orb */}
   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] pointer-events-none" style={{ background: 'radial-gradient(ellipse, rgba(0,255,255,0.06) 0%, transparent 70%)' }} />
       <GameTopBar
         showRules={showRules}
@@ -605,14 +626,13 @@ return (
         setShowRules={setShowRules}
       />
 
-      {/* Main game area */}
         <div className="flex flex-col items-center relative z-10 w-full flex-1">
 
-  {/* PLAYER 2 (TOP) */}
   <div className="w-full max-w-[1200px]">
    
    <PlayerArea
       player={gs.opponent}
+      pendingProgram={pendingProgram}
       rolledThisTurn={rolledThisTurn}
       isOpponent
       phase={gs.phase}
@@ -624,8 +644,6 @@ return (
     />
 
   </div>
-
-  {/* PLAYER 1 BOARD */}
 
   <div className="w-full max-w-[1200px] flex justify-center mt-12">
     
@@ -646,10 +664,8 @@ return (
     />
   </div>
 
-  {/* HAND (ALWAYS BELOW BOARD) */}
   <div className="w-full max-w-[1200px] mt-2">
 
-  {/* ACTION BUTTONS */}
   <GameActionBar
     actionBtn={actionBtn}
     phaseButtonStyle={phaseButtonStyle}
@@ -662,7 +678,6 @@ return (
     endTurnBtn={endTurnBtn}
     handleEndTurn={handleEndTurn}
   />
-  {/* HAND */}
   <HandArea
     onPlayCard={handlePlayCard}
     onSellCard={handleSellCard}
@@ -677,7 +692,6 @@ return (
   />
 </div>
 
-  {/* COMBAT LOG */}
  {showCombatLog && (
   <div className="absolute right-0 top-0 h-full w-[320px] border-l border-cyan-500 bg-black/90">
 
