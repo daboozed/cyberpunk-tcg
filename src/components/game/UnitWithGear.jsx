@@ -25,6 +25,13 @@ function getBlockerSource(unit) {
 }
 
 function getTargetGlowStyles(tone) {
+  if (tone === "red") {
+    return {
+      filter: "drop-shadow(0 0 6px rgba(255,23,68,0.8)) drop-shadow(0 0 15px rgba(255,23,68,0.52))",
+      boxShadow: "0 0 0 2px rgba(255,23,68,0.86), 0 0 14px rgba(255,23,68,0.62), 0 0 24px rgba(255,23,68,0.36)",
+    };
+  }
+
   if (tone === "blue") {
     return {
       filter: "drop-shadow(0 0 6px rgba(0,191,255,0.75)) drop-shadow(0 0 14px rgba(0,191,255,0.48))",
