@@ -100,7 +100,6 @@ window.setGs = setGs;
   const [gearTarget, setGearTarget] = useState(null);
   const [showRules, setShowRules] = useState(false);
   const [rolledThisTurn, setRolledThisTurn] = useState(false);
-  const [showAdjustGigModal, setShowAdjustGigModal] = useState(false);
   const [mulliganPreview, setMulliganPreview] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [pendingGigBoost, setPendingGigBoost] = useState(null);
