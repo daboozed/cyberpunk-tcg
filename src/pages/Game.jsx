@@ -33,7 +33,6 @@ import {
   resolvePendingEffect,
   startAttackPhase,
   attackUnit,
-  endTurn,
   resolveBlockerDecision,
   resolveAfterpartyAdjustment,
   playLegendAsSolo,
@@ -449,31 +448,21 @@ const handleAttackGig = useCallback((gigIndex) => {
     setGearTarget(null);
     setRolledThisTurn(false);
     
-    if (!isMultiplayer && gs.currentPlayer === "player") {    setGs(prev => ({     ...prev,     message: "Opponent is thinking..."   }));    setTimeout(() => {     const passTurn = {       ...gs,       currentPlayer: "opponent"     };      setGs(passTurn);      setTimeout(() => {       const aiState = readyPhase(passTurn);        setGs({         ...aiState,         message: "Opponent finished their turn."       });      }, 900);    }, 500);    return; }
-  setGs(prev => ({
-    ...prev,
-    message: "Opponent is thinking..."
-  }));
-
-  setTimeout(() => {
-  const newGs = endTurn(gs);
-
-  setGs({
-    ...newGs,
-    message: "Opponent finished their turn."
-  });
-}, 1200);
-
-  return;
-}
-
-const newGs = endTurn(gs);
-setGs(newGs);
-    if (isMultiplayer) {
-      mpSave(newGs, true);
-      setWaitingForOpponent(true);
+    if (!isMultiplayer && gs.currentPlayer === "player") {
+      setGs(prev => ({ ...prev, message: "Opponent is thinking..." }));
+      setTimeout(() => {
+        const passTurn = { ...gs, currentPlayer: "opponent" };
+        setGs(passTurn);
+        setTimeout(() => {
+          const aiState = readyPhase(passTurn);
+          setGs({ ...aiState, message: "Opponent finished their turn." });
+        }, 900);
+      }, 500);
+      return;
     }
-  }, [gs, isMultiplayer, mpSave, setWaitingForOpponent]);
+
+    setWaitingForOpponent(true);
+  }, [gs, isMultiplayer, setWaitingForOpponent]);
 
   const handleBlockerDecision = useCallback((blockerUid) => {
     const newGs = resolveBlockerDecision(gs, blockerUid);
