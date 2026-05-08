@@ -631,66 +631,22 @@ setGs(newGs);
   const canPlay = actualIndex !== null && gs.player?.hand[actualIndex] &&
     (getAvailableEddies(gs.player) + getAvailableLegendEddies(gs.player)) >= (gs.player.hand[actualIndex]?.cost || 0);
 
-// 🔥 PHASE BUTTON LOGIC
-let phaseButtonLabel = "ATTACK PHASE";
-let phaseButtonDisabled = false;
-let phaseButtonStyle = attackBtn;
-
-// READY PHASE → yellow glowing (unclickable)
-if (gs.phase === PHASES.READY || gs.phase === PHASES.PICK_GIG) {
-  phaseButtonLabel = "PLAY PHASE";
-  phaseButtonDisabled = true;
-  phaseButtonStyle = `
-  bg-yellow-500 text-black border-yellow-300
-  shadow-[0_0_12px_rgba(255,255,0,0.8)]
-  animate-pulse [animation-duration:2s]
-`;
-}
-
-// PLAY PHASE → red glowing (clickable)
-if (gs.phase === PHASES.PLAY) {
-  phaseButtonLabel = "ATTACK PHASE";
-  phaseButtonDisabled = false;
-  phaseButtonStyle = attackBtn;
-}
-
-// ATTACK PHASE → greyed out (locked)
-if (gs.phase === PHASES.ATTACK) {
-  phaseButtonLabel = "ATTACK PHASE";
-  phaseButtonDisabled = true;
-  phaseButtonStyle = `
-    bg-gray-600 text-gray-300 border-gray-500
-    opacity-50 cursor-not-allowed
-  `;
-}
-
-
-  // Derive context-sensitive message instead of using gs.message
-  function getDerivedMessage() {
-    if (disableActions) return "Waiting for opponent's move...";
-    if (isGameOver) return gs.message || (gs.winner === 'player' ? 'You win!' : 'Defeat.');
-    if (gearTarget !== null) return 'Select a friendly unit to equip this Gear to.';
-    if (gs.awaitingTarget) return 'Select a target to apply the effect.';
-    if (gs.phase === PHASES.PICK_GIG) return 'Pick a Fixer Die to roll your Gig.';
-    if (gs.phase === PHASES.PLAY) {
-      if (selectedAttacker) return 'Attacker selected — go to Attack Phase to attack, or deselect.';
-      if (actualIndex !== null) {
-        const card = gs.player?.hand[actualIndex];
-        if (card) {
-          if (!canPlay) return `Not enough Eddies to play ${card.name} (costs ${card.cost || 0}).`;
-          return `Play ${card.name}${canSell ? ' or sell it for €$1.' : '.'}`;
-        }
-      }
-      return 'Play cards, sell for Eddies, or move to Attack Phase.';
-    }
-    if (gs.phase === PHASES.ATTACK) {
-      if (selectedAttacker) return 'Attack a spent rival unit, or attack rival directly to steal a Gig.';
-      return 'Select one of your units to attack with, or end your turn.';
-    }
-    if (gs.phase === PHASES.MULLIGAN) return 'Mulligan your hand or keep it.';
-    if (gs.phase === PHASES.READY) return 'Ready phase — preparing your turn...';
-    return '';
-  }
+const {
+  phaseButtonLabel,
+  phaseButtonDisabled,
+  phaseButtonStyle,
+  getDerivedMessage,
+} = useGameViewState({
+  gs,
+  disableActions,
+  isGameOver,
+  gearTarget,
+  selectedAttacker,
+  actualIndex,
+  canPlay,
+  canSell,
+  attackBtn,
+});
 
 return (
 <div className="min-h-screen w-screen flex flex-col relative overflow-y-auto scanlines" style={{ background: '#020d18' }}>
