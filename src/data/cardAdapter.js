@@ -91,8 +91,6 @@ function mapEffect(name = "") {
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
-  console.log("Mapped:", n);
-
   if (GEAR_EFFECTS[n]) return GEAR_EFFECTS[n];
   if (PROGRAM_EFFECTS[n]) return PROGRAM_EFFECTS[n];
   if (UNIT_EFFECTS[n]) return UNIT_EFFECTS[n];

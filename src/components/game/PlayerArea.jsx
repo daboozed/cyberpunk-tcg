@@ -172,8 +172,10 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
        phase,
         isAttackTargetArea = false,
         targetingGlow = false,
+        targetingGlowTone = "green",
         pendingBlock = null,
         onBlock,
+        targetFilter,
       }) {
 
       const isAttackPhase = phase === PHASES.ATTACK;
@@ -203,7 +205,12 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         !unit.justPlayed &&
         !unit.cantAttack;
 
-      const canBlock = eligibleBlockerUids.includes(unit.uid);
+      const canBlock =
+        eligibleBlockerUids.includes(unit.uid) &&
+        !unit.spent;
+
+      const isValidTarget = targetFilter ? targetFilter(unit) : true;
+      const unitTargetingGlow = targetingGlow && isValidTarget;
 
       return (
         <div key={unit.uid} className="relative flex flex-col items-center">
@@ -235,7 +242,8 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
            !!selectedAttacker &&
            !!unit.spent
           }
-          targetingGlow={targetingGlow}
+          targetingGlow={unitTargetingGlow}
+          targetingGlowTone={targetingGlowTone}
           blockerGlow={canBlock}
 
   onClick={() => canBlock ? onBlock?.(unit.uid) : onFieldUnitClick?.(unit)}
@@ -292,6 +300,8 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
     const isFriendlyUnitTargeting =
   !isOpponent &&
   pendingProgram?.targetType === "friendlyUnit";
+
+    const isFloorItTargeting = pendingProgram?.targetType === "spentUnitMax4";
       
       const borderColor =
         isOpponent ? "#ff3366" : "#00ffff";
@@ -429,18 +439,12 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
               : ""
           }
           
-          className="
-                    w-8 h-8
-                    border-2 border-yellow-300
-                    bg-black
-                    text-yellow-200
-                    rounded-lg
-                    text-lg
-                    shadow-[0_0_8px_rgba(253,224,71,.35)]
-                    hover:scale-105
-                    hover:shadow-[0_0_12px_rgba(253,224,71,.55)]
-                    transition-all duration-100
-                    "
+          className={cn(
+            "w-8 h-8 border-2 rounded-lg text-lg transition-all duration-100",
+            locked
+              ? "cursor-not-allowed border-gray-500 bg-gray-800 text-gray-500 opacity-45 shadow-none grayscale hover:scale-100 hover:shadow-none"
+              : "cursor-pointer border-yellow-300 bg-black text-yellow-200 shadow-[0_0_8px_rgba(253,224,71,.35)] hover:scale-105 hover:shadow-[0_0_12px_rgba(253,224,71,.55)]"
+          )}
           
         >
           d{die.sides}
@@ -570,6 +574,9 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
       onFieldUnitClick={onFieldUnitClick}
       phase={phase}
       isAttackTargetArea={true}
+      targetingGlow={isFloorItTargeting}
+      targetingGlowTone="red"
+      targetFilter={(unit) => unit.spent && (unit.cost || 0) <= 4}
     />
     
   </div>
@@ -627,7 +634,9 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         field={player.field}
         borderColor={borderColor}
         selectedAttacker={selectedAttacker}
-        targetingGlow={pendingProgram?.targetType === "friendlyUnit"}
+        targetingGlow={pendingProgram?.targetType === "friendlyUnit" || isFloorItTargeting}
+        targetingGlowTone={isFloorItTargeting ? "blue" : pendingProgram?.card?.id === "p1" ? "blue" : "green"}
+        targetFilter={isFloorItTargeting ? (unit) => unit.spent && (unit.cost || 0) <= 4 : undefined}
         pendingBlock={pendingBlock}
         onBlock={onBlock}
         onFieldUnitClick={onFieldUnitClick}
@@ -659,7 +668,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
     style={{
       position: "relative",
       top: "35px",     // move up/down
-      left: "250px",    // move left/right
+      left: "250px",    // left / right
     }}
   >
 

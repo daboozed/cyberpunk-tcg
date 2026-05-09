@@ -3,13 +3,28 @@ import BlockerDecisionModal from "@/components/game/BlockerDecisionModal";
 import AdjustGigModal from "@/components/game/AdjustGigModal";
 import GigStealModal from "@/components/game/GigStealModal";
 import ChooseGigModal from "@/components/game/ChooseGigModal";
-import FloorItModal from "@/components/game/FloorItModal";
 import CardHoverPreview from "@/components/game/CardHoverPreview";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CARD_BACK } from "@/lib/cardPool";
 import { PHASES, resolvePendingEffect } from "@/lib/engine/gameEngine";
+import {
+  getAvailableEddies,
+  getAvailableLegendEddies,
+  spendEddies,
+} from "@/lib/engine/EconomyEngine";
 import { resolveEffect } from "@/lib/effectResolver";
+
+function payProgramCost(player, card) {
+  const cost = card?.cost || 0;
+
+  if (getAvailableEddies(player) + getAvailableLegendEddies(player) < cost) {
+    return false;
+  }
+
+  spendEddies(player, cost);
+  return true;
+}
 
   export default function GameModals(props) {
     const {
@@ -31,11 +46,6 @@ import { resolveEffect } from "@/lib/effectResolver";
       setGs,
       setactualIndex,
 
-      floorItCardIndex,
-      setFloorItCardIndex,
-      showFloorItModal,
-      setShowFloorItModal,
-
       hoveredViktorCard,
       setHoveredViktorCard,
       mousePos,
@@ -46,14 +56,12 @@ import { resolveEffect } from "@/lib/effectResolver";
 
     return (
       <>
-        {/* CARD DETAIL */}
         <CardDetailModal
           card={detailCard}
           open={!!detailCard}
           onClose={() => setDetailCard(null)}
         />
 
-        {/* BLOCKER */}
         {gs.phase === PHASES.BLOCKER_DECISION &&
           gs.pendingAttackers?.length > 0 && (
             <BlockerDecisionModal
@@ -64,7 +72,6 @@ import { resolveEffect } from "@/lib/effectResolver";
             />
           )}
 
-        {/* LEGEND PEEK */}
         {gs.pendingLegendPeek && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
             <div className="bg-card border border-cyan-500 rounded-xl p-6 max-w-4xl w-full mx-4">
@@ -120,7 +127,6 @@ import { resolveEffect } from "@/lib/effectResolver";
           </div>
         )}
 
-        {/* ADJUST GIG */}
         {gs.showAdjustGigModal && (
           <AdjustGigModal
             rivalGigs={gs.opponent.gigDice}
@@ -130,7 +136,6 @@ import { resolveEffect } from "@/lib/effectResolver";
           />
         )}
 
-        {/* GIG STEAL */}
         {gs.pendingGigSteal && (
           <GigStealModal
             availableGigs={gs.opponent.gigDice}
@@ -146,7 +151,6 @@ import { resolveEffect } from "@/lib/effectResolver";
           />
         )}
 
-        {/* VIKTOR SEARCH */}
         {gs.pendingLegendFlip?.type === "viktor_search" && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
             <div className="bg-card border border-cyan-500 rounded-xl p-4 max-w-lg mx-4">
@@ -262,7 +266,6 @@ import { resolveEffect } from "@/lib/effectResolver";
           </div>
         )}
 
-        {/* GENERIC TARGET */}
         {gs.awaitingTarget && !pendingProgram && (
   <ChooseGigModal
     gigs={gs.player.gigDice}
@@ -275,9 +278,7 @@ import { resolveEffect } from "@/lib/effectResolver";
     }}
   />
 )}
-  {/* PROGRAM MODALS */}
 
-  {/* INDUSTRIAL ASSEMBLY */}
 {pendingProgram?.effect === "p3" && (
   <ChooseGigModal
     gigs={gs.player.gigDice}
@@ -288,6 +289,8 @@ import { resolveEffect } from "@/lib/effectResolver";
       const newGs = structuredClone(gs);
       const p = newGs.player;
       const card = p.hand[pendingProgram.cardIndex];
+
+      if (!payProgramCost(p, card)) return;
 
       if (card?.effectData) {
         resolveEffect(card.effectData, {
@@ -310,7 +313,6 @@ import { resolveEffect } from "@/lib/effectResolver";
   />
 )}
         
-  {/* AFTERPARTY */}
 {pendingProgram?.effect === "p4" && (
   <AdjustGigModal
     rivalGigs={gs.opponent.gigDice}
@@ -320,6 +322,8 @@ import { resolveEffect } from "@/lib/effectResolver";
       const p = newGs.player;
       const card = p.hand[pendingProgram.cardIndex];
       const selectedGig = newGs.opponent.gigDice[gigIndex];
+
+      if (!payProgramCost(p, card)) return;
 
       if (card?.effectData && selectedGig) {
         resolveEffect(card.effectData, {
@@ -342,7 +346,6 @@ import { resolveEffect } from "@/lib/effectResolver";
   />
 )}
 
-  {/* CYBERPSYCHOSIS */}
 {pendingProgram?.effect === "p5" && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
     <div className="bg-card border border-yellow-500 rounded-xl p-6 max-w-lg w-full mx-4">
@@ -365,6 +368,8 @@ import { resolveEffect } from "@/lib/effectResolver";
                 const p = newGs.player;
                 const card = p.hand[pendingProgram.cardIndex];
 
+                if (!payProgramCost(p, card)) return;
+
                 if (card?.effectData) {
                   resolveEffect(card.effectData, {
                     state: newGs,
@@ -398,7 +403,6 @@ import { resolveEffect } from "@/lib/effectResolver";
   </div>
 )}
 
-  {/* CORPORATE SURVEILLANCE */}
 {pendingProgram?.effect === "p7" && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
     <div className="bg-card border border-green-500 rounded-xl p-6 max-w-lg w-full mx-4">
@@ -421,6 +425,8 @@ import { resolveEffect } from "@/lib/effectResolver";
                 const p = newGs.player;
                 const card = p.hand[pendingProgram.cardIndex];
 
+                if (!payProgramCost(p, card)) return;
+
                 if (card?.effectData) {
                   resolveEffect(card.effectData, {
                     state: newGs,
@@ -452,45 +458,6 @@ import { resolveEffect } from "@/lib/effectResolver";
       </Button>
     </div>
   </div>
-)}
-
-        {/* FLOOR IT */}
-{showFloorItModal && (
-  <FloorItModal
-    friendlyUnits={gs.player.field.filter(
-      (u) => u.spent && (u.cost || 0) <= 4
-    )}
-    rivalUnits={gs.opponent.field.filter(
-      (u) => u.spent && (u.cost || 0) <= 4
-    )}
-    onSelect={(unit) => {
-      const newGs = structuredClone(gs);
-      const p = newGs.player;
-      const card = p.hand[floorItCardIndex];
-
-      if (card?.effectData) {
-        resolveEffect(card.effectData, {
-          state: newGs,
-          player: "player",
-          targetUid: unit.uid
-        });
-      }
-
-      const [removed] = p.hand.splice(floorItCardIndex, 1);
-      p.trash.push(removed);
-
-      setGs(newGs);
-      setShowFloorItModal(false);
-      setFloorItCardIndex(null);
-      setactualIndex(null);
-
-      if (isMultiplayer) mpSave(newGs);
-    }}
-    onCancel={() => {
-      setShowFloorItModal(false);
-      setFloorItCardIndex(null);
-    }}
-  />
 )}
       </>
     );

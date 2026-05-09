@@ -5,11 +5,54 @@ const CARD_W = 80;
 const CARD_H = 112;
 const PEEK = 22; // px of each gear card's bottom visible below the previous layer
 
-export default function UnitWithGear({ unit, selected, attackTarget = false, targetingGlow = false, blockerGlow = false, onClick }) {
+function hasKeyword(card, keyword) {
+  const keywords = [
+    ...(card?.keywords || []),
+    ...(card?.effect?.keywords || []),
+    ...(card?.effectData?.keywords || []),
+  ];
+
+  return keywords.includes(keyword);
+}
+
+function getBlockerSource(unit) {
+  if (hasKeyword(unit, "blocker")) return "unit";
+
+  const blockerGear = (unit?.gear || []).find(g => hasKeyword(g, "blocker"));
+  if (blockerGear) return "gear";
+
+  return null;
+}
+
+function getTargetGlowStyles(tone) {
+  if (tone === "red") {
+    return {
+      filter: "drop-shadow(0 0 6px rgba(255,23,68,0.8)) drop-shadow(0 0 15px rgba(255,23,68,0.52))",
+      boxShadow: "0 0 0 2px rgba(255,23,68,0.86), 0 0 14px rgba(255,23,68,0.62), 0 0 24px rgba(255,23,68,0.36)",
+    };
+  }
+
+  if (tone === "blue") {
+    return {
+      filter: "drop-shadow(0 0 6px rgba(0,191,255,0.75)) drop-shadow(0 0 14px rgba(0,191,255,0.48))",
+      boxShadow: "0 0 0 2px rgba(0,191,255,0.82), 0 0 14px rgba(0,191,255,0.58), 0 0 24px rgba(0,191,255,0.32)",
+    };
+  }
+
+  return {
+    filter: "drop-shadow(0 0 5px rgba(57,255,20,0.48)) drop-shadow(0 0 9px rgba(57,255,20,0.35))",
+    boxShadow: "0 0 0 1px rgba(57,255,20,0.48), 0 0 9px rgba(57,255,20,0.43), 0 0 16px rgba(57,255,20,0.23)",
+  };
+}
+
+export default function UnitWithGear({ unit, selected, attackTarget = false, targetingGlow = false, targetingGlowTone = "green", blockerGlow = false, onClick }) {
   const gear = unit.gear || [];
   const totalHeight = CARD_H + gear.length * PEEK;
-  const isTargetHighlighted = targetingGlow && !unit.spent;
+  const isTargetHighlighted = targetingGlow;
   const isBlockerHighlighted = blockerGlow && !unit.spent;
+  const blockerSource = getBlockerSource(unit);
+  const hasBlocker = !!blockerSource;
+  const targetGlowStyles = isTargetHighlighted ? getTargetGlowStyles(targetingGlowTone) : null;
 
   return (
     <div
@@ -26,14 +69,14 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
         filter: isBlockerHighlighted
           ? 'drop-shadow(0 0 5px rgba(156,163,175,0.65)) drop-shadow(0 0 10px rgba(156,163,175,0.45))'
           : isTargetHighlighted
-            ? 'drop-shadow(0 0 5px rgba(57,255,20,0.48)) drop-shadow(0 0 9px rgba(57,255,20,0.35))'
+            ? targetGlowStyles.filter
             : attackTarget
               ? 'drop-shadow(0 0 8px rgba(239,68,68,0.65)) drop-shadow(0 0 14px rgba(239,68,68,0.45))'
               : 'none',
         boxShadow: isBlockerHighlighted
           ? '0 0 0 2px rgba(156,163,175,0.7), 0 0 12px rgba(156,163,175,0.5), 0 0 20px rgba(156,163,175,0.28)'
           : isTargetHighlighted
-            ? '0 0 0 1px rgba(57,255,20,0.48), 0 0 9px rgba(57,255,20,0.43), 0 0 16px rgba(57,255,20,0.23)'
+            ? targetGlowStyles.boxShadow
             : attackTarget
               ? '0 0 0 2px rgba(239,68,68,0.65), 0 0 12px rgba(239,68,68,0.45)'
               : 'none',
@@ -92,6 +135,33 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
           showDetails
         />
       </div>
+
+      {/* Blocker badge — bottom-right of unit card. Gear-granted blocker is silver. */}
+      {hasBlocker && (
+        <div
+          title={blockerSource === "gear" ? "Blocker from gear" : "Blocker"}
+          style={{
+            position: 'absolute',
+            top: CARD_H - 20,
+            right: 14,
+            zIndex: gear.length + 4,
+            width: 18,
+            height: 18,
+            borderRadius: '50%',
+            background: blockerSource === 'gear' ? '#94a3b8' : '#00ffff',
+            border: '2px solid hsl(225 30% 6%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 1px 5px rgba(0,0,0,0.75)',
+            opacity: unit.spent ? 0.65 : 1,
+          }}
+        >
+          <span style={{ fontFamily: 'var(--font-orbitron)', fontWeight: 900, fontSize: 9, color: '#000', lineHeight: 1 }}>
+            B
+          </span>
+        </div>
+      )}
 
       {/* Gear count badge — bottom-right of unit card, outside the card edge */}
       {gear.length > 0 && (
