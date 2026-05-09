@@ -10,13 +10,25 @@ const app = express();
 
 const PORT = process.env.PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+const allowedOrigins = new Set([
+  CLIENT_URL,
+  "http://localhost:5173",
+  "http://localhost:5174",
+]);
 const isProduction = process.env.NODE_ENV === "production";
 
 const sessions = new Map();
 
 app.use(
   cors({
-    origin: CLIENT_URL,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} is not allowed by CORS`));
+    },
     credentials: true,
   })
 );
@@ -188,7 +200,7 @@ app.get("/auth/discord/callback", async (req, res) => {
 
           <script>
             if (window.opener) {
-              window.opener.postMessage({ type: "DISCORD_LOGIN_SUCCESS" }, "${CLIENT_URL}");
+              window.opener.postMessage({ type: "DISCORD_LOGIN_SUCCESS" }, "*");
               window.close();
             } else {
               window.location.href = "${CLIENT_URL}";
