@@ -3,6 +3,8 @@ import "./theme.css";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Cpu,
+  Plus,
+  Users,
 } from "lucide-react";
 import LoadDeckModal from "@/components/game/LoadDeckModal";
 import DiscordLoginPanel from "@/components/auth/DiscordLoginPanel";
@@ -61,6 +63,31 @@ export default function Home() {
           </h1>
         </div>
 
+        <div className="hidden md:block absolute left-[80px] top-[325px]">
+          <div className="relative h-[280px] w-[460px]">
+            <div className="absolute left-6 top-10 rotate-[-14deg] transition hover:scale-105">
+              <img
+                className="h-48 w-32 rounded-xl border border-rose-500/60 object-cover"
+                src="https://exburst.dev/cyberpunk/cards/hd/697107581860bf853828ac16_a026.webp"
+              />
+            </div>
+
+            <div className="absolute left-[155px] top-0 z-20 transition hover:scale-105">
+              <img
+                className="h-52 w-36 rounded-xl border border-amber-500/60 object-cover"
+                src="https://exburst.dev/cyberpunk/cards/hd/n001_1773925986628.webp"
+              />
+            </div>
+
+            <div className="absolute right-6 top-10 rotate-[14deg] transition hover:scale-105">
+              <img
+                className="h-48 w-32 rounded-xl border border-cyan-500/60 object-cover"
+                src="https://exburst.dev/cyberpunk/cards/hd/HDev-srW8AEOtTs_fx_1773657698631.webp"
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="absolute left-1/2 top-[220px] w-[calc(100%-32px)] max-w-[360px] -translate-x-1/2 rounded-2xl border border-white/10 bg-black/60 shadow-2xl backdrop-blur-md md:left-auto md:right-[420px] md:top-[120px] md:w-[360px] md:translate-x-0">
           <div className="border-b border-white/10 p-4 text-center">
             <h2 className="text-sm font-bold tracking-widest">
@@ -76,9 +103,23 @@ export default function Home() {
             <DiscordLoginPanel />
 
             {deckLoaded && (
-              <div className="rounded border border-green-500/30 p-2 text-xs text-green-400">
-                Deck loaded: {loadedDeckName}
-              </div>
+              <>
+                <div className="rounded border border-green-500/30 p-2 text-xs text-green-400">
+                  Deck loaded: {loadedDeckName}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button className="flex h-10 items-center justify-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-sm text-cyan-200 transition-all duration-200 hover:bg-cyan-500/20 hover:shadow-[0_0_12px_rgba(34,211,238,0.25)]">
+                    <Users size={16} />
+                    Join Table
+                  </button>
+
+                  <button className="flex h-10 items-center justify-center gap-2 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 text-sm text-fuchsia-200 transition-all duration-200 hover:bg-fuchsia-500/20 hover:shadow-[0_0_12px_rgba(217,70,239,0.25)]">
+                    <Plus size={16} />
+                    Create Table
+                  </button>
+                </div>
+              </>
             )}
 
             <button
