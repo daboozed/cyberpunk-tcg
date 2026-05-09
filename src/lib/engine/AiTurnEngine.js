@@ -102,8 +102,12 @@ function getEligibleBlockers(enemy, excludedUid = null) {
 function rollHighestAvailableFixerDie(s, player) {
   if (!Array.isArray(player.fixerArea) || player.fixerArea.length === 0) return;
 
+  const hasRolledAllNonD20 = [4, 6, 8, 10, 12].every(sides =>
+    (player.gigDice || []).some(g => g.sides === sides)
+  );
+
   const die = player.fixerArea
-    .filter(d => d.sides !== 20)
+    .filter(d => d.sides !== 20 || hasRolledAllNonD20)
     .slice()
     .sort((a, b) => b.sides - a.sides)[0];
 
