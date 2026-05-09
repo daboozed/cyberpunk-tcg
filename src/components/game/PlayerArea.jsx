@@ -100,7 +100,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
   );
 }
 
-    function TrashZone({ trash = [], borderColor }) {
+    function TrashZone({ trash = [], borderColor, onClick }) {
     const topCard = trash[trash.length - 1];
 
     return (
@@ -112,13 +112,17 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
           TRASH ({trash.length})
         </p>
 
-        <div
-          className="rounded-md p-1 flex items-center justify-center"
+        <button
+          type="button"
+          onClick={onClick}
+          className="rounded-md p-1 flex items-center justify-center transition hover:scale-105 hover:bg-white/5 focus:outline-none"
           style={{
             width: "56px",
             height: "88px",
             border: `1px dashed ${borderColor}`,
+            boxShadow: trash.length > 0 ? `0 0 8px ${borderColor}66` : "none",
           }}
+          title={trash.length > 0 ? "View trash" : "Trash is empty"}
         >
           {topCard ? (
             <img
@@ -127,6 +131,67 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
             />
           ) : (
             <span className="text-[12px] opacity-30">EMPTY</span>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  function TrashViewerModal({ open, title, trash = [], borderColor, onClose }) {
+    if (!open) return null;
+
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+        <div
+          className="w-full max-w-5xl rounded-2xl bg-zinc-950/95 p-5 shadow-[0_0_40px_rgba(0,0,0,0.75)]"
+          style={{ border: `1px solid ${borderColor}` }}
+        >
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <h2
+                className="font-orbitron text-xl tracking-widest"
+                style={{ color: borderColor }}
+              >
+                {title} Trash
+              </h2>
+              <p className="mt-1 text-xs text-zinc-400">
+                {trash.length} card{trash.length === 1 ? "" : "s"} trashed. Both players can inspect trash piles.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-zinc-600 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 transition hover:bg-zinc-800"
+            >
+              Close
+            </button>
+          </div>
+
+          {trash.length === 0 ? (
+            <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-zinc-700 text-sm uppercase tracking-[0.35em] text-zinc-500">
+              Trash Empty
+            </div>
+          ) : (
+            <div className="max-h-[68vh] overflow-y-auto rounded-xl border border-zinc-800 bg-black/30 p-4">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                {trash.map((card, index) => (
+                  <div
+                    key={card?.uid || `${card?.id || card?.name || "trash-card"}-${index}`}
+                    className="group rounded-lg border border-zinc-800 bg-zinc-950/80 p-2 transition hover:border-cyan-400/70 hover:shadow-[0_0_16px_rgba(34,211,238,0.25)]"
+                  >
+                    <img
+                      src={card?.imageUrl || CARD_BACK}
+                      alt={card?.name || "Trashed card"}
+                      className="mx-auto h-44 w-32 rounded object-cover sm:h-48 sm:w-36"
+                    />
+                    <div className="mt-2 truncate text-center text-xs text-zinc-300">
+                      {card?.name || "Unknown Card"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -276,6 +341,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
       // HOOKS FIRST (must always be first)
       const [hoveredLegend, setHoveredLegend] = useState(null);
       const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+      const [trashViewerOpen, setTrashViewerOpen] = useState(false);
       // THEN derived values
       const availableEddies =
         getAvailableEddies(player) +
@@ -305,6 +371,8 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
       
       const borderColor =
         isOpponent ? "#ff3366" : "#00ffff";
+
+      const trashTitle = playerLabel || (isOpponent ? "Player 2" : "Player 1");
 
         /* MOVE BOTH GIG POOLS TOGETHER */
   const gigPoolX = "33px";
@@ -554,6 +622,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
     <TrashZone
       trash={player.trash || []}
       borderColor={borderColor}
+      onClick={() => setTrashViewerOpen(true)}
     />
   </div>
 
@@ -738,6 +807,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
     <TrashZone
       trash={player.trash || []}
       borderColor={borderColor}
+      onClick={() => setTrashViewerOpen(true)}
     />
 
 
@@ -753,6 +823,14 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
             {hoveredLegend && (
               <CardHoverPreview card={hoveredLegend} mousePos={mousePos} />
             )}
+
+            <TrashViewerModal
+              open={trashViewerOpen}
+              title={trashTitle}
+              trash={player.trash || []}
+              borderColor={borderColor}
+              onClose={() => setTrashViewerOpen(false)}
+            />
 
           </div>
         </div>
