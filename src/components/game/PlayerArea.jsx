@@ -439,18 +439,12 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
               : ""
           }
           
-          className="
-                    w-8 h-8
-                    border-2 border-yellow-300
-                    bg-black
-                    text-yellow-200
-                    rounded-lg
-                    text-lg
-                    shadow-[0_0_8px_rgba(253,224,71,.35)]
-                    hover:scale-105
-                    hover:shadow-[0_0_12px_rgba(253,224,71,.55)]
-                    transition-all duration-100
-                    "
+          className={cn(
+            "w-8 h-8 border-2 rounded-lg text-lg transition-all duration-100",
+            locked
+              ? "cursor-not-allowed border-gray-500 bg-gray-800 text-gray-500 opacity-45 shadow-none grayscale hover:scale-100 hover:shadow-none"
+              : "cursor-pointer border-yellow-300 bg-black text-yellow-200 shadow-[0_0_8px_rgba(253,224,71,.35)] hover:scale-105 hover:shadow-[0_0_12px_rgba(253,224,71,.55)]"
+          )}
           
         >
           d{die.sides}
