@@ -102,7 +102,13 @@ function getEligibleBlockers(enemy, excludedUid = null) {
 function rollHighestAvailableFixerDie(s, player) {
   if (!Array.isArray(player.fixerArea) || player.fixerArea.length === 0) return;
 
-  const die = player.fixerArea.slice().sort((a, b) => b.sides - a.sides)[0];
+  const die = player.fixerArea
+    .filter(d => d.sides !== 20)
+    .slice()
+    .sort((a, b) => b.sides - a.sides)[0];
+
+  if (!die) return;
+
   const index = player.fixerArea.findIndex(d => d.id === die.id);
   const value = Math.ceil(Math.random() * die.sides);
 
