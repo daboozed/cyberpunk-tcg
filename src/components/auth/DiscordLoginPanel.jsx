@@ -2,9 +2,26 @@ import { useEffect, useState } from "react";
 
 const AUTH_SERVER = import.meta.env.VITE_AUTH_SERVER || "http://localhost:3001";
 
+function getStoredDisplayName(user) {
+  if (!user?.id) return "";
+
+  return (
+    localStorage.getItem(`cpTCG_displayName_${user.id}`) ||
+    user.globalName ||
+    user.username ||
+    ""
+  );
+}
+
 export default function DiscordLoginPanel() {
   const [discordUser, setDiscordUser] = useState(null);
+  const [displayName, setDisplayName] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
+
+  const applyUser = (user) => {
+    setDiscordUser(user);
+    setDisplayName(getStoredDisplayName(user));
+  };
 
   const fetchDiscordUser = async () => {
     try {
@@ -13,14 +30,14 @@ export default function DiscordLoginPanel() {
       });
 
       if (!res.ok) {
-        setDiscordUser(null);
+        applyUser(null);
         return;
       }
 
       const data = await res.json();
-      setDiscordUser(data.user || null);
+      applyUser(data.user || null);
     } catch {
-      setDiscordUser(null);
+      applyUser(null);
     } finally {
       setAuthLoading(false);
     }
@@ -52,6 +69,14 @@ export default function DiscordLoginPanel() {
     );
   };
 
+  const handleDisplayNameChange = (value) => {
+    setDisplayName(value);
+
+    if (discordUser?.id) {
+      localStorage.setItem(`cpTCG_displayName_${discordUser.id}`, value);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await fetch(`${AUTH_SERVER}/auth/logout`, {
@@ -62,7 +87,7 @@ export default function DiscordLoginPanel() {
       // Ignore network errors and clear local UI state.
     }
 
-    setDiscordUser(null);
+    applyUser(null);
   };
 
   if (authLoading) {
@@ -86,32 +111,23 @@ export default function DiscordLoginPanel() {
 
   return (
     <div className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 p-3">
-      <div className="flex items-center gap-3">
-        {discordUser.avatarUrl && (
-          <img
-            src={discordUser.avatarUrl}
-            alt="Discord profile"
-            className="h-10 w-10 rounded-full border border-cyan-400/50"
-          />
-        )}
+      <div className="flex items-center gap-2">
+        <input
+          value={displayName}
+          onChange={(event) => handleDisplayNameChange(event.target.value)}
+          aria-label="Editable player username"
+          className="h-9 min-w-0 flex-1 rounded-md border border-cyan-500/30 bg-black/35 px-3 text-sm font-semibold text-cyan-200 outline-none transition placeholder:text-cyan-200/30 focus:border-cyan-300 focus:shadow-[0_0_10px_rgba(34,211,238,0.35)]"
+          placeholder="Choose username"
+          maxLength={24}
+        />
 
-        <div className="min-w-0 flex-1 text-left">
-          <div className="truncate text-sm font-semibold text-cyan-300">
-            {discordUser.globalName || discordUser.username}
-          </div>
-
-          <div className="truncate text-[11px] text-white/50">
-            {discordUser.email || discordUser.username}
-          </div>
-        </div>
+        <button
+          onClick={handleLogout}
+          className="h-9 shrink-0 rounded-md border border-red-500/30 bg-red-500/10 px-3 text-sm text-red-300 transition-all duration-200 hover:bg-red-500/20"
+        >
+          Logout
+        </button>
       </div>
-
-      <button
-        onClick={handleLogout}
-        className="mt-3 h-9 w-full rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 transition-all duration-200 hover:bg-red-500/20"
-      >
-        Logout
-      </button>
     </div>
   );
 }
