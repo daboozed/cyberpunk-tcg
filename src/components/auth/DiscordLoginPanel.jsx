@@ -7,6 +7,7 @@ function getStoredDisplayName(user) {
 
   return (
     localStorage.getItem(`cpTCG_displayName_${user.id}`) ||
+    localStorage.getItem("cpTCG_playerName") ||
     user.globalName ||
     user.username ||
     ""
@@ -19,9 +20,15 @@ export default function DiscordLoginPanel() {
   const [authLoading, setAuthLoading] = useState(true);
 
   const applyUser = (user) => {
-    setDiscordUser(user);
-    setDisplayName(getStoredDisplayName(user));
-  };
+  setDiscordUser(user);
+
+  const storedDisplayName = getStoredDisplayName(user);
+  setDisplayName(storedDisplayName);
+
+  if (storedDisplayName.trim()) {
+    localStorage.setItem("cpTCG_playerName", storedDisplayName.trim());
+  }
+};
 
   const fetchDiscordUser = async () => {
     try {
@@ -70,12 +77,20 @@ export default function DiscordLoginPanel() {
   };
 
   const handleDisplayNameChange = (value) => {
-    setDisplayName(value);
+  setDisplayName(value);
 
-    if (discordUser?.id) {
-      localStorage.setItem(`cpTCG_displayName_${discordUser.id}`, value);
-    }
-  };
+  const nextName = value.trim();
+
+  if (discordUser?.id) {
+    localStorage.setItem(`cpTCG_displayName_${discordUser.id}`, value);
+  }
+
+  if (nextName) {
+    localStorage.setItem("cpTCG_playerName", nextName);
+  } else {
+    localStorage.removeItem("cpTCG_playerName");
+  }
+};
 
   const handleLogout = async () => {
     try {

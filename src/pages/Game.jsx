@@ -647,7 +647,11 @@ return (
       onRollGig={handlePickGig}
       disableDice={rolledThisTurn || gs.phase !== PHASES.PICK_GIG}
       selectedAttacker={selectedAttacker}
-      playerLabel={isMultiplayer ? myPlayerLabel : "Player 1"}
+      playerLabel={
+        isMultiplayer
+        ? myPlayerLabel
+        : localStorage.getItem("cpTCG_playerName") || "Player 1"
+}
       pendingBlock={gs.pendingBlock}
       onBlock={handleBlockerDecision}
     />

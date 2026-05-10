@@ -45,16 +45,18 @@ function parseCookies(req) {
   }, {});
 }
 
-function setCookie(res, name, value, options = {}) {
-  const parts = [`${name}=${encodeURIComponent(value)}`];
+function getSameSiteCookiePolicy() {
+  return isProduction ? "None" : "Lax";
+}
 
-  if (options.httpOnly) parts.push("HttpOnly");
-  if (options.secure) parts.push("Secure");
-  if (options.sameSite) parts.push(`SameSite=${options.sameSite}`);
-  if (options.maxAge) parts.push(`Max-Age=${Math.floor(options.maxAge / 1000)}`);
-  if (options.path) parts.push(`Path=${options.path}`);
-
-  res.append("Set-Cookie", parts.join("; "));
+function clearCookie(res, name) {
+  setCookie(res, name, "", {
+    httpOnly: true,
+    sameSite: getSameSiteCookiePolicy(),
+    secure: isProduction,
+    maxAge: 0,
+    path: "/",
+  });
 }
 
 function clearCookie(res, name) {
@@ -114,12 +116,12 @@ app.get("/auth/discord", (req, res) => {
     const redirectUri = requireEnv("DISCORD_REDIRECT_URI");
 
     setCookie(res, "discord_oauth_state", state, {
-      httpOnly: true,
-      sameSite: "Lax",
-      secure: isProduction,
-      maxAge: 10 * 60 * 1000,
-      path: "/",
-    });
+  httpOnly: true,
+  sameSite: getSameSiteCookiePolicy(),
+  secure: isProduction,
+  maxAge: 10 * 60 * 1000,
+  path: "/",
+});
 
     const params = new URLSearchParams({
       client_id: requireEnv("DISCORD_CLIENT_ID"),
@@ -185,12 +187,12 @@ app.get("/auth/discord/callback", async (req, res) => {
 
     clearCookie(res, "discord_oauth_state");
     setCookie(res, "cp_session", sessionId, {
-      httpOnly: true,
-      sameSite: "Lax",
-      secure: isProduction,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: "/",
-    });
+    httpOnly: true,
+    sameSite: getSameSiteCookiePolicy(),
+    secure: isProduction,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
+});
 
     res.send(`
       <html>
