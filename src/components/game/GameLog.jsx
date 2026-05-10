@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import CardHoverPreview from "./CardHoverPreview";
@@ -9,26 +9,10 @@ export default function GameLog({
   cardLookup = {},
   extraHeaderRight = null,
 }) {
-  const endRef = useRef(null);
   const containerRef = useRef(null);
 
   const [hoveredCard, setHoveredCard] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const box = containerRef.current;
-    if (!box) return;
-
-    const nearBottom =
-      box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-
-    if (nearBottom) {
-      endRef.current?.scrollIntoView({
-        behavior: "auto",
-        block: "nearest"
-      });
-    }
-  }, [logs.length]);
 
   const getTurnColor = (msg) => {
     if (msg.startsWith('--- Turn') && msg.includes("Your Turn")) return 'text-cyan-400 font-bold mt-1';
@@ -89,50 +73,59 @@ export default function GameLog({
     });
   };
 
+  const handleClose = () => {
+    window.dispatchEvent(new CustomEvent("close-combat-log"));
+  };
+
   return (
     <>
       <div
-        className={cn("flex flex-col h-full rounded-lg overflow-hidden")}
+        className={cn("fixed right-0 top-0 z-[10000] flex h-screen w-[320px] flex-col rounded-lg overflow-hidden")}
         style={{
           border: '1px solid #00ffff',
           boxShadow: '0 0 10px rgba(0,255,255,0.2)',
-          background: 'rgba(0,10,20,0.92)',
-          position: 'relative',
-          zIndex: 9998,
+          background: 'rgba(0,10,20,0.96)',
         }}
       >
         <div
-  className="px-3 py-1.5 flex-shrink-0 flex items-center justify-between gap-2"
-  style={{
-    background: 'rgba(0,255,255,0.12)',
-    borderBottom: '1px solid #00ffff'
-  }}
->
-  <p
-    className="text-[10px] font-orbitron font-bold uppercase tracking-widest"
-    style={{ color: '#00ffff', textShadow: '0 0 8px #00ffff' }}
-  >
-    Combat Log
-  </p>
+          className="px-3 py-1.5 flex-shrink-0 flex items-center justify-between gap-2"
+          style={{
+            background: 'rgba(0,255,255,0.12)',
+            borderBottom: '1px solid #00ffff'
+          }}
+        >
+          <p
+            className="text-[10px] font-orbitron font-bold uppercase tracking-widest"
+            style={{ color: '#00ffff', textShadow: '0 0 8px #00ffff' }}
+          >
+            Combat Log
+          </p>
 
-  {extraHeaderRight}
-</div>
+          <div className="flex items-center gap-2">
+            {extraHeaderRight}
+            <button
+              onClick={handleClose}
+              className="text-xs px-2 py-1 border border-red-400 text-red-300 rounded hover:bg-red-500/20"
+            >
+              Close
+            </button>
+          </div>
+        </div>
 
         <ScrollArea className="flex-1 p-2 min-h-0">
           <div ref={containerRef} className="space-y-0.5">
             {logs.map((log, i) => {
-  const msg = typeof log === "string" ? log : log?.msg || "";
+              const msg = typeof log === "string" ? log : log?.msg || "";
 
-  return (
-    <p
-      key={i}
-      className={cn("text-[11px] font-mono leading-snug", getTurnColor(msg))}
-    >
-      {renderMessage(msg)}
-    </p>
-  );
-})}
-            <div ref={endRef} />
+              return (
+                <p
+                  key={i}
+                  className={cn("text-[11px] font-mono leading-snug", getTurnColor(msg))}
+                >
+                  {renderMessage(msg)}
+                </p>
+              );
+            })}
           </div>
         </ScrollArea>
       </div>
