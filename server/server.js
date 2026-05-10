@@ -57,10 +57,14 @@ function setCookie(res, name, value, options = {}) {
   res.append("Set-Cookie", parts.join("; "));
 }
 
+function getSameSiteCookiePolicy() {
+  return isProduction ? "None" : "Lax";
+}
+
 function clearCookie(res, name) {
   setCookie(res, name, "", {
     httpOnly: true,
-    sameSite: "Lax",
+    sameSite: getSameSiteCookiePolicy(),
     secure: isProduction,
     maxAge: 0,
     path: "/",
@@ -115,7 +119,7 @@ app.get("/auth/discord", (req, res) => {
 
     setCookie(res, "discord_oauth_state", state, {
       httpOnly: true,
-      sameSite: "Lax",
+      sameSite: getSameSiteCookiePolicy(),
       secure: isProduction,
       maxAge: 10 * 60 * 1000,
       path: "/",
@@ -186,7 +190,7 @@ app.get("/auth/discord/callback", async (req, res) => {
     clearCookie(res, "discord_oauth_state");
     setCookie(res, "cp_session", sessionId, {
       httpOnly: true,
-      sameSite: "Lax",
+      sameSite: getSameSiteCookiePolicy(),
       secure: isProduction,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: "/",
