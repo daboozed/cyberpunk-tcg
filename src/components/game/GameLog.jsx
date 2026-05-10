@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import CardHoverPreview from "./CardHoverPreview";
@@ -73,14 +74,10 @@ export default function GameLog({
     });
   };
 
-  const handleClose = () => {
-    window.dispatchEvent(new CustomEvent("close-combat-log"));
-  };
-
-  return (
+    return createPortal(
     <>
       <div
-        className={cn("fixed right-0 top-0 z-[10000] flex h-screen w-[320px] flex-col rounded-lg overflow-hidden")}
+        className={cn("fixed right-0 top-0 z-[2147483647] flex h-screen w-[320px] flex-col rounded-lg overflow-hidden")}
         style={{
           border: '1px solid #00ffff',
           boxShadow: '0 0 10px rgba(0,255,255,0.2)',
@@ -103,12 +100,7 @@ export default function GameLog({
 
           <div className="flex items-center gap-2">
             {extraHeaderRight}
-            <button
-              onClick={handleClose}
-              className="text-xs px-2 py-1 border border-red-400 text-red-300 rounded hover:bg-red-500/20"
-            >
-              Close
-            </button>
+            
           </div>
         </div>
 
@@ -133,6 +125,7 @@ export default function GameLog({
       {hoveredCard && (
         <CardHoverPreview card={hoveredCard} mousePos={mousePos} />
       )}
-    </>
+    </>,
+      document.body
   );
 }

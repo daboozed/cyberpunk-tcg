@@ -1,4 +1,5 @@
     import { useState } from "react";
+    import { createPortal } from "react-dom";
     import UnitWithGear from "./UnitWithGear";
     import GigDice from "./GigDice";
     import { getAvailableEddies, getAvailableLegendEddies } from "@/lib/engine/EconomyEngine";
@@ -138,65 +139,61 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
   }
 
   function TrashViewerModal({ open, title, trash = [], borderColor, onClose }) {
-    if (!open) return null;
+  if (!open) return null;
 
-    return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-        <div
-          className="w-full max-w-5xl rounded-2xl bg-zinc-950/95 p-5 shadow-[0_0_40px_rgba(0,0,0,0.75)]"
-          style={{ border: `1px solid ${borderColor}` }}
-        >
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div>
-              <h2
-                className="font-orbitron text-xl tracking-widest"
-                style={{ color: borderColor }}
-              >
-                {title} Trash
-              </h2>
-              <p className="mt-1 text-xs text-zinc-400">
-                {trash.length} card{trash.length === 1 ? "" : "s"} trashed. Both players can inspect trash piles.
-              </p>
-            </div>
+  return createPortal(
+    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-transparent p-4">
+      <div
+        className="w-full max-w-5xl rounded-2xl bg-zinc-950 p-5 shadow-[0_0_40px_rgba(0,0,0,0.75)]"
+        style={{ border: `1px solid ${borderColor}` }}
+      >
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h2
+            className="font-orbitron text-xl tracking-widest"
+            style={{ color: borderColor }}
+          >
+            {title} Trash ({trash.length})
+          </h2>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-zinc-600 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 transition hover:bg-zinc-800"
-            >
-              Close
-            </button>
-          </div>
-
-          {trash.length === 0 ? (
-            <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-zinc-700 text-sm uppercase tracking-[0.35em] text-zinc-500">
-              Trash Empty
-            </div>
-          ) : (
-            <div className="max-h-[68vh] overflow-y-auto rounded-xl border border-zinc-800 bg-black/30 p-4">
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                {trash.map((card, index) => (
-                  <div
-                    key={card?.uid || `${card?.id || card?.name || "trash-card"}-${index}`}
-                    className="group rounded-lg border border-zinc-800 bg-zinc-950/80 p-2 transition hover:border-cyan-400/70 hover:shadow-[0_0_16px_rgba(34,211,238,0.25)]"
-                  >
-                    <img
-                      src={card?.imageUrl || CARD_BACK}
-                      alt={card?.name || "Trashed card"}
-                      className="mx-auto h-44 w-32 rounded object-cover sm:h-48 sm:w-36"
-                    />
-                    <div className="mt-2 truncate text-center text-xs text-zinc-300">
-                      {card?.name || "Unknown Card"}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-zinc-600 bg-zinc-900 px-4 py-2 text-sm text-zinc-100 transition hover:bg-zinc-800"
+          >
+            Close
+          </button>
         </div>
+
+        {trash.length === 0 ? (
+          <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-zinc-700 bg-black text-sm uppercase tracking-[0.35em] text-zinc-500">
+            Trash Empty
+          </div>
+        ) : (
+          <div className="max-h-[68vh] overflow-y-auto rounded-xl border border-zinc-800 bg-black p-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {trash.map((card, index) => (
+                <div
+                  key={card?.uid || `${card?.id || card?.name || "trash-card"}-${index}`}
+                  className="group rounded-lg border border-zinc-800 bg-zinc-950 p-2 transition hover:border-cyan-400/70 hover:shadow-[0_0_16px_rgba(34,211,238,0.25)]"
+                >
+                  <img
+                    src={card?.imageUrl || CARD_BACK}
+                    alt={card?.name || "Trashed card"}
+                    className="mx-auto h-32 w-20 rounded object-cover"
+                  />
+                  <div className="mt-2 truncate text-center text-xs text-zinc-300">
+                    {card?.name || "Unknown Card"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-    );
-  }
+    </div>,
+    document.body
+  );
+}
 
   function DeckZone({ deck = [], borderColor }) {
     return (
