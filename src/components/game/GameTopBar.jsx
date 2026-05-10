@@ -6,7 +6,7 @@ export default function GameTopBar({
   handleLeaveRoom,
 }) {
   return (
-    <div className="absolute top-4 right-4 z-40 flex gap-2">
+    <div className="absolute top-4 right-4 z-[5] flex gap-2">
       <button
         onClick={() => setShowCombatLog(prev => !prev)}
         className="px-3 py-2 rounded bg-black/70 border border-fuchsia-400 text-fuchsia-300 hover:bg-fuchsia-950/50"
