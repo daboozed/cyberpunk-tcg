@@ -688,24 +688,34 @@ return (
       logs={gs.gameLog}
       alwaysExpanded
       cardLookup={cardMap}
+      
       extraHeaderRight={
-        <button
-          onClick={() => {
-            const text = (gs.gameLog || [])
-              .map(entry =>
-                typeof entry === "string"
-                  ? entry
-                  : entry.msg || ""
-              )
-              .join("\n");
+  <div className="flex items-center gap-2">
+    <button
+      onClick={() => {
+        const text = (gs.gameLog || [])
+          .map(entry =>
+            typeof entry === "string"
+              ? entry
+              : entry.msg || ""
+          )
+          .join("\n");
 
-            navigator.clipboard.writeText(text);
-          }}
-          className="text-xs px-2 py-1 border border-cyan-400 rounded hover:bg-cyan-500/20"
-        >
-          Copy
-        </button>
-      }
+        navigator.clipboard.writeText(text);
+      }}
+      className="text-xs px-2 py-1 border border-cyan-400 rounded hover:bg-cyan-500/20"
+    >
+      Copy
+    </button>
+
+    <button
+      onClick={() => setShowCombatLog(false)}
+      className="text-xs px-2 py-1 border border-red-400 text-red-300 rounded hover:bg-red-500/20"
+    >
+      Close
+    </button>
+  </div>
+}
     />
   </div>
 )}
