@@ -44,22 +44,28 @@ export default function DiscordLoginPanel() {
   };
 
   useEffect(() => {
+  fetchDiscordUser();
+
+  const onMessage = (event) => {
+    if (event.origin !== AUTH_SERVER) return;
+
+    if (event.data?.type === "DISCORD_LOGIN_SUCCESS") {
+      fetchDiscordUser();
+    }
+  };
+
+  const onFocus = () => {
     fetchDiscordUser();
+  };
 
-    const onMessage = (event) => {
-      if (event.origin !== AUTH_SERVER) return;
+  window.addEventListener("message", onMessage);
+  window.addEventListener("focus", onFocus);
 
-      if (event.data?.type === "DISCORD_LOGIN_SUCCESS") {
-        fetchDiscordUser();
-      }
-    };
-
-    window.addEventListener("message", onMessage);
-
-    return () => {
-      window.removeEventListener("message", onMessage);
-    };
-  }, []);
+  return () => {
+    window.removeEventListener("message", onMessage);
+    window.removeEventListener("focus", onFocus);
+  };
+}, []);
 
   const handleLogin = () => {
     window.open(
