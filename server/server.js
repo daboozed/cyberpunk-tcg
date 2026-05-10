@@ -59,15 +59,6 @@ function clearCookie(res, name) {
   });
 }
 
-function clearCookie(res, name) {
-  setCookie(res, name, "", {
-    httpOnly: true,
-    sameSite: "Lax",
-    secure: isProduction,
-    maxAge: 0,
-    path: "/",
-  });
-}
 
 function requireEnv(name) {
   const value = process.env[name];
