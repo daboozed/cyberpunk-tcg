@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Home from "./pages/Home";
 import Game from "./pages/Game";
 import Admin from "./pages/Admin";
+import Lobby from "./pages/Lobby";
 // import GameAdminTest from "./pages/GameAdminTest";
 import DeckBuilder from "./pages/DeckBuilder";
 import Rules from "./pages/Rules";
@@ -16,6 +17,7 @@ export default function App() {
 
         <Route path="/game" element={<Game />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/lobby" element={<Lobby />} />
         {/* <Route path="/game-ADMIN-TEST" element={<GameAdminTest />} /> */}
         <Route path="/deckbuilder" element={<DeckBuilder />} />
         <Route path="/rules" element={<Rules />} />
