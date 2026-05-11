@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import axios from "axios";
 import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
@@ -18,6 +19,11 @@ const allowedOrigins = new Set([
 const isProduction = process.env.NODE_ENV === "production";
 
 const sessions = new Map();
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 app.use(
   cors({
@@ -86,6 +92,39 @@ function getAvatarUrl(user) {
   return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
 }
 
+async function persistDiscordUser(discordUser) {
+  const discordId = discordUser.id;
+
+  const { data: existingUser } = await supabase
+    .from("users")
+    .select("id, login_count")
+    .eq("discord_id", discordId)
+    .maybeSingle();
+
+  const payload = {
+    discord_id: discordId,
+    username: discordUser.username,
+    global_name: discordUser.global_name,
+    avatar: getAvatarUrl(discordUser),
+    display_name: discordUser.global_name || discordUser.username,
+    last_login: new Date().toISOString(),
+  };
+
+  if (existingUser) {
+    payload.login_count = (existingUser.login_count || 0) + 1;
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .upsert(payload, {
+      onConflict: "discord_id",
+    });
+
+  if (error) {
+    console.error("Failed to persist Discord user", error.message);
+  }
+}
+
 app.get("/", (req, res) => {
   res.send("Discord Login Server Running");
 });
@@ -99,6 +138,23 @@ app.get("/auth/me", (req, res) => {
   }
 
   res.json({ user });
+});
+
+app.get("/admin/users", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .order("last_login", { ascending: false });
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ users: data || [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post("/auth/logout", (req, res) => {
@@ -176,6 +232,9 @@ app.get("/auth/discord/callback", async (req, res) => {
     });
 
     const discordUser = user.data;
+
+    await persistDiscordUser(discordUser);
+
     const safeUser = {
       id: discordUser.id,
       username: discordUser.username,
