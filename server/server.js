@@ -20,10 +20,27 @@ const isProduction = process.env.NODE_ENV === "production";
 
 const sessions = new Map();
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+function getSupabaseServiceKey() {
+  return (
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE
+  );
+}
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = getSupabaseServiceKey();
+const supabase =
+  supabaseUrl && supabaseServiceKey
+    ? createClient(supabaseUrl, supabaseServiceKey)
+    : null;
+
+if (!supabase) {
+  console.warn(
+    "Supabase is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
+  );
+}
 
 app.use(
   cors({
@@ -93,13 +110,22 @@ function getAvatarUrl(user) {
 }
 
 async function persistDiscordUser(discordUser) {
+  if (!supabase) {
+    console.warn("Skipping user persistence because Supabase is not configured.");
+    return;
+  }
+
   const discordId = discordUser.id;
 
-  const { data: existingUser } = await supabase
+  const { data: existingUser, error: lookupError } = await supabase
     .from("users")
     .select("id, login_count")
     .eq("discord_id", discordId)
     .maybeSingle();
+
+  if (lookupError) {
+    console.error("Failed to look up Discord user", lookupError.message);
+  }
 
   const payload = {
     discord_id: discordId,
@@ -125,13 +151,17 @@ async function persistDiscordUser(discordUser) {
   }
 }
 
+function getSessionUser(req) {
+  const cookies = parseCookies(req);
+  return cookies.cp_session ? sessions.get(cookies.cp_session) : null;
+}
+
 app.get("/", (req, res) => {
   res.send("Discord Login Server Running");
 });
 
 app.get("/auth/me", (req, res) => {
-  const cookies = parseCookies(req);
-  const user = cookies.cp_session ? sessions.get(cookies.cp_session) : null;
+  const user = getSessionUser(req);
 
   if (!user) {
     return res.status(401).json({ user: null });
@@ -142,6 +172,13 @@ app.get("/auth/me", (req, res) => {
 
 app.get("/admin/users", async (req, res) => {
   try {
+    if (!supabase) {
+      return res.status(500).json({
+        error:
+          "Supabase is not configured. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Render.",
+      });
+    }
+
     const { data, error } = await supabase
       .from("users")
       .select("*")
