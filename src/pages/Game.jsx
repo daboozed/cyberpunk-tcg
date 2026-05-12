@@ -639,7 +639,7 @@ return (
       player={gs.opponent}
       pendingProgram={
         selectedAttackerOnlySpentUnits
-          ? { targetType: "spentUnitMax4" }
+          ? { targetType: "spentUnitAttack" }
           : pendingProgram
       }
       rolledThisTurn={rolledThisTurn}
