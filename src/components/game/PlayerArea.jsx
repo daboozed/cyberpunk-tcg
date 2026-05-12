@@ -323,6 +323,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         phase, 
         onLegendClick,
         pendingProgram,
+        gearTarget = null,
         pendingBlock = null,
         onBlock,
         onFieldUnitClick,
@@ -361,8 +362,11 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
     (hasUnitTargets || hasGigTargets);
 
     const isFriendlyUnitTargeting =
-  !isOpponent &&
-  pendingProgram?.targetType === "friendlyUnit";
+      !isOpponent &&
+      (
+      pendingProgram?.targetType === "friendlyUnit" ||
+      gearTarget !== null
+      );
 
     const isFloorItTargeting = pendingProgram?.targetType === "spentUnitMax4";
       
@@ -386,12 +390,14 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
   const trashX = "0px";
   const trashY = "0px";
 
-        const unlockedD20 =
-    (player.gigDice || []).some(g => g.sides === 4) &&
-    (player.gigDice || []).some(g => g.sides === 6) &&
-    (player.gigDice || []).some(g => g.sides === 8) &&
-    (player.gigDice || []).some(g => g.sides === 10) &&
-    (player.gigDice || []).some(g => g.sides === 12);
+  const rolledFixerSides = player.rolledFixerSides || [];
+
+const unlockedD20 =
+  rolledFixerSides.includes(4) &&
+  rolledFixerSides.includes(6) &&
+  rolledFixerSides.includes(8) &&
+  rolledFixerSides.includes(10) &&
+  rolledFixerSides.includes(12);
 
             //PLAYER BOARD
         return (
@@ -482,7 +488,16 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
     {(player.fixerArea || []).slice().map((die, i) => {
       
       const isD20 = die.sides === 20;
-      const locked = rolledThisTurn || (isD20 && !unlockedD20);
+
+      const canRollFixerDie =
+        phase === PHASES.PICK_GIG &&
+       !pendingBlock &&
+        !disableDice;
+
+      const locked =
+        !canRollFixerDie ||
+        rolledThisTurn ||
+        (isD20 && !unlockedD20);
 
         return (
         <button
@@ -700,7 +715,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         field={player.field}
         borderColor={borderColor}
         selectedAttacker={selectedAttacker}
-        targetingGlow={pendingProgram?.targetType === "friendlyUnit" || isFloorItTargeting}
+        targetingGlow={isFriendlyUnitTargeting || isFloorItTargeting}
         targetingGlowTone={isFloorItTargeting ? "blue" : pendingProgram?.card?.id === "p1" ? "blue" : "green"}
         targetFilter={isFloorItTargeting ? (unit) => unit.spent && (unit.cost || 0) <= 4 : undefined}
         pendingBlock={pendingBlock}

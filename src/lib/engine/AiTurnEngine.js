@@ -14,13 +14,26 @@ function getPower(unit) {
 }
 
 function hasKeyword(card, keyword) {
+  const normalizedKeyword = String(keyword || "").toLowerCase();
+
+  if (
+    normalizedKeyword === "blocker" &&
+    (card?.grantsBlocker === true || card?.effect?.grantsBlocker === true)
+  ) {
+    return true;
+  }
+
   const keywords = [
     ...(card?.keywords || []),
     ...(card?.effect?.keywords || []),
     ...(card?.effectData?.keywords || []),
+    ...(card?.effect?.effect?.keywords || []),
+    ...(card?.effectData?.effect?.keywords || []),
   ];
 
-  return keywords.includes(keyword);
+  return keywords
+    .map(k => String(k || "").toLowerCase())
+    .includes(normalizedKeyword);
 }
 
 function hasBlocker(unit) {

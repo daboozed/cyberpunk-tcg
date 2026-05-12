@@ -55,7 +55,7 @@ export default function Game() {
   const roomId = urlParams.get('roomId');
   const isMultiplayer = !!roomId;
   const actionBtn = `
-  px-6 py-2 rounded-md font-orbitron text-sm tracking-wide
+  px-2 py-0 rounded-md font-orbitron text-sm tracking-wide
   transition-all duration-150
   border
   active:scale-95
@@ -131,16 +131,25 @@ useReadyPhaseAutoAdvance({
 });
 
   useEffect(() => {
-    if (gs.phase === PHASES.MULLIGAN && isMultiplayer && myRoleRef.current === 'player2') {
-      const newGs = mulligan(gs, false);
-      setGs(newGs);
-    }
-  }, [gs.phase]);
-
-  const handleMulligan = useCallback((doIt) => {
-    const newGs = mulligan(gs, doIt);
+  if (gs.phase === PHASES.MULLIGAN && isMultiplayer && myRoleRef.current === 'player2') {
+    const newGs = mulligan(gs, false);
     setGs(newGs);
-  }, [gs]);
+  }
+}, [gs.phase]);
+
+useEffect(() => {
+  if (gs.pendingLegendPeek?.owner === "opponent") {
+    setGs(prev => ({
+      ...prev,
+      pendingLegendPeek: false
+    }));
+  }
+}, [gs.pendingLegendPeek?.owner]);
+
+const handleMulligan = useCallback((doIt) => {
+  const newGs = mulligan(gs, doIt);
+  setGs(newGs);
+}, [gs]);
 
   const handlePickGig = (player, index, result = null) => {
   if (rolledThisTurn) {
@@ -196,14 +205,22 @@ const die = side?.fixerArea?.[index];
   if (!card) return;
 
   if (card.type === 'gear') {
-    if (gs.player.field.length === 0) {
-      setGs(prev => ({ ...prev, message: 'No units on the field to equip Gear to!' }));
-      return;
-    }
-    setGearTarget(index);
-    setGs(prev => ({ ...prev, message: 'Select a friendly unit to equip this Gear to.' }));
+  if (gearTarget === index) {
+    setGearTarget(null);
+    setGs(prev => ({ ...prev, message: '' }));
     return;
   }
+
+  if (gs.player.field.length === 0) {
+    setGs(prev => ({ ...prev, message: 'No units on the field to equip Gear to!' }));
+    return;
+  }
+
+  setPendingProgram(null);
+  setGearTarget(index);
+  setGs(prev => ({ ...prev, message: 'Select a friendly unit to equip this Gear to.' }));
+  return;
+}
 
   if (card.type === "program" && card.id === "p1") {
   if (pendingProgram?.targetType === "friendlyUnit") {
@@ -266,7 +283,7 @@ const die = side?.fixerArea?.[index];
 
   if (isMultiplayer) mpSave(newGs);
 
-}, [gs, pendingProgram, isMultiplayer, mpSave]);
+}, [gs, pendingProgram, gearTarget, isMultiplayer, mpSave]);
 
   const handleCallLegend = useCallback((index) => {
   if (gs.phase !== PHASES.PLAY) return;
@@ -591,6 +608,7 @@ return (
         handleNewGame={handleNewGame}
         navigate={navigate}
         isMultiplayer={isMultiplayer}
+        setShowCombatLog={setShowCombatLog}
       />
 
       <WaitingForOpponentOverlay
@@ -640,6 +658,7 @@ return (
       player={gs.player}
       phase={gs.phase}
       pendingProgram={pendingProgram}
+      gearTarget={gearTarget}
       rolledThisTurn={rolledThisTurn}
       onLegendClick={!disableActions ? handleCallLegend : () => {}}
       onFieldUnitClick={!disableActions ? handleFieldUnitClick : () => {}}
@@ -686,42 +705,38 @@ return (
 </div>
 
  {showCombatLog && (
-  <div className="absolute right-0 top-0 h-full w-[320px] border-l border-cyan-500 bg-black/90">
+  <GameLog
+    logs={gs.gameLog}
+    alwaysExpanded
+    cardLookup={cardMap}
+    extraHeaderRight={
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            const text = (gs.gameLog || [])
+              .map(entry =>
+                typeof entry === "string"
+                  ? entry
+                  : entry.msg || ""
+              )
+              .join("\n");
 
-    <GameLog
-      logs={gs.gameLog}
-      alwaysExpanded
-      cardLookup={cardMap}
-      
-      extraHeaderRight={
-  <div className="flex items-center gap-2">
-    <button
-      onClick={() => {
-        const text = (gs.gameLog || [])
-          .map(entry =>
-            typeof entry === "string"
-              ? entry
-              : entry.msg || ""
-          )
-          .join("\n");
+            navigator.clipboard.writeText(text);
+          }}
+          className="text-xs px-2 py-1 border border-cyan-400 rounded hover:bg-cyan-500/20"
+        >
+          Copy
+        </button>
 
-        navigator.clipboard.writeText(text);
-      }}
-      className="text-xs px-2 py-1 border border-cyan-400 rounded hover:bg-cyan-500/20"
-    >
-      Copy
-    </button>
-
-    <button
-      onClick={() => setShowCombatLog(false)}
-      className="text-xs px-2 py-1 border border-red-400 text-red-300 rounded hover:bg-red-500/20"
-    >
-      Close
-    </button>
-  </div>
-}
-    />
-  </div>
+        <button
+          onClick={() => setShowCombatLog(false)}
+          className="text-xs px-2 py-1 border border-red-400 text-red-300 rounded hover:bg-red-500/20"
+        >
+          Close
+        </button>
+      </div>
+    }
+  />
 )}
    </div>
       <GameModals

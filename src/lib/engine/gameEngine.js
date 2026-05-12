@@ -60,6 +60,7 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
       legends,
       trash:[],
       gigDice:[],
+      rolledFixerSides:[],
       streetCred:0,
       fixerArea:[
         {id:`${prefix}-d4`,sides:4,label:"d4"},
@@ -267,6 +268,14 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
   }
 
   p.gigDice.push(newDie);
+
+  if (!Array.isArray(p.rolledFixerSides)) {
+  p.rolledFixerSides = [];
+}
+
+if (!p.rolledFixerSides.includes(die.sides)) {
+  p.rolledFixerSides.push(die.sides);
+}
   updateStreetCred(s);
 
   log(s, `     Rolled ${newDie.label} → ${finalValue}`);
@@ -372,14 +381,17 @@ if (card.type === "program") {
 
   // Gear attach
   if(card.type === 'gear' && targetUid) {
-    const target = p.field.find(u => u.uid === targetUid);
-    if(target) {
-      if(!target.gear) target.gear = [];
-      target.gear.push({...card, uid: uid()});
-      log(s,`     Equipped ${card.name} to ${target.name}`);
-      return s;
-    }
+  const target = p.field.find(u => u.uid === targetUid);
+  if(target) {
+    if(!target.gear) target.gear = [];
+
+    const attachedGear = {...card, uid: uid()};
+    target.gear.push(attachedGear);
+
+    log(s,`     Equipped ${card.name} to ${target.name}`);
+    return s;
   }
+}
 
   p.field.push({
     ...card,
@@ -580,6 +592,8 @@ log(s, `     ${attacker.name} steals Gig (${stolen.label} — value: ${stolen.va
 
     attacker.spent = true;
 
+
+    
 // Trigger attack gear effects FIRST
 triggerGearEffects(s, attacker, "onAttack");
 
@@ -590,10 +604,19 @@ const defPow = (defender.power || 0) + (defender.powerBonus || 0) +
   ((defender.gear || []).reduce((sum, g) => sum + (g.powerBonus || 0), 0));
 
     if (atkPow > defPow) {
-      const idx = s.opponent.field.findIndex(u => u.uid === defenderUid);
-      if(idx >= 0){ const [d] = s.opponent.field.splice(idx, 1); s.opponent.trash.push(d); }
-      log(s, `     ${attacker.name} defeats ${defender.name}`);
-    } else if (atkPow < defPow) {
+  const idx = s.opponent.field.findIndex(u => u.uid === defenderUid);
+
+  if (idx >= 0) {
+    const [d] = s.opponent.field.splice(idx, 1);
+    s.opponent.trash.push(d);
+  }
+
+  log(s, `     ${attacker.name} defeats ${defender.name}`);
+
+  triggerGearEffects(s, attacker, "onAttackWinVsUnit", {
+    defender,
+  });
+} else if (atkPow < defPow) {
       const idx = s.player.field.findIndex(u => u.uid === attackerUid);
       if(idx >= 0){ const [d] = s.player.field.splice(idx, 1); s.player.trash.push(d); }
       log(s, `     ${attacker.name} is defeated by ${defender.name}`);
@@ -733,28 +756,79 @@ export function resolveBlockerDecision(state, blockerUid = null) {
   }
 
   // =========================
-  // HELPERS
-  // =========================
-function triggerGearEffects(state, unit, trigger) {
+// HELPERS
+// =========================
+function getUnitOwnerKey(state, unit) {
+  if (state.player.field.some(u => u.uid === unit.uid)) return "player";
+  if (state.opponent.field.some(u => u.uid === unit.uid)) return "opponent";
+  return null;
+}
+
+function getGearEffect(gear) {
+  const rawEffect = gear?.effectData || gear?.effect || gear || null;
+
+  if (
+    gear?.name === "Satori" ||
+    String(rawEffect || "").toLowerCase().includes("draw a card")
+  ) {
+    return {
+      type: "GEAR_TRIGGER",
+      powerBonus: gear?.powerBonus || 1,
+      trigger: "onAttackWinVsUnit",
+      action: "DRAW",
+      amount: 1,
+    };
+  }
+
+  return rawEffect;
+}
+
+function drawCardsForPlayer(state, playerKey, amount = 1) {
+  const player = state[playerKey];
+  if (!player) return 0;
+
+  let drawn = 0;
+
+  for (let i = 0; i < amount; i++) {
+    if (!player.deck?.length) break;
+
+    player.hand.push(player.deck.pop());
+    drawn++;
+  }
+
+  return drawn;
+}
+
+function triggerGearEffects(state, unit, trigger, context = {}) {
   const gears = unit.gear || [];
+  const owner = getUnitOwnerKey(state, unit);
+
+  if (!owner) return;
 
   for (const gear of gears) {
+  const effect = getGearEffect(gear);
 
-    // KIROSHI OPTICS
-    if (
-      gear.name?.toLowerCase().includes("kiroshi") &&
-      trigger === "onAttack"
-    ) {
-      const owner = state.player.field.some(u => u.uid === unit.uid)
-  ? "player"
-  : "opponent";
+    if (effect?.trigger !== trigger) continue;
 
-state.pendingLegendPeek = { owner };
+    if (effect.action === "PEEK_FRIENDLY_FACEDOWN_LEGEND") {
+      state.pendingLegendPeek = { owner };
 
-log(
-  state,
-  "     Kiroshi Optics activates — peek at a friendly face-down Legend"
-       );
+      log(
+        state,
+        `     ${gear.name} activates — peek at a friendly face-down Legend`
+      );
+    }
+
+    if (effect.action === "DRAW") {
+      const amount = effect.amount || 1;
+      const drawn = drawCardsForPlayer(state, owner, amount);
+
+      if (drawn > 0) {
+        log(
+          state,
+          `     ${gear.name} activates — ${unit.name} draws ${drawn} card${drawn === 1 ? "" : "s"}`
+        );
+      }
     }
   }
 }

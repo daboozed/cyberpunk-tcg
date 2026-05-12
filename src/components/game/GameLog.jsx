@@ -77,7 +77,9 @@ export default function GameLog({
     return createPortal(
     <>
       <div
-        className={cn("fixed right-0 top-0 z-[2147483647] flex h-screen w-[320px] flex-col rounded-lg overflow-hidden")}
+  className={cn(
+    "fixed right-2 top-[1vh] z-[2147483647] flex h-[90vh] w-[320px] flex-col rounded-lg overflow-hidden"
+  )}
         style={{
           border: '1px solid #00ffff',
           boxShadow: '0 0 10px rgba(0,255,255,0.2)',
@@ -104,7 +106,7 @@ export default function GameLog({
           </div>
         </div>
 
-        <ScrollArea className="flex-1 p-2 min-h-0">
+        <ScrollArea className="flex-1 min-h-0 overflow-y-auto p-2 pr-3">
           <div ref={containerRef} className="space-y-0.5">
             {logs.map((log, i) => {
               const msg = typeof log === "string" ? log : log?.msg || "";
