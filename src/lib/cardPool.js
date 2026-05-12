@@ -62,7 +62,7 @@ export const PROGRAMS_POOL = [
 
 export const GEAR_POOL = [
   { id: 'g1', name: 'Mantis Blades', type: 'gear', cost: 1, color: 'red', tags: [TAGS.CYBERWARE], sellable: true, effect: 'Equipped Unit gets +2 Power.', powerBonus: 2, imageUrl: BASE_IMG + '696a701c1860bf853806f62a_a019.webp' },
-  { id: 'g2', name: 'Sandevistan', type: 'gear', cost: 3, color: 'green', tags: [TAGS.CYBERWARE], sellable: true, effect: 'Equipped Unit gets +3 Power and GO SOLO.', powerBonus: 3, grantsGoSolo: true, imageUrl: BASE_IMG + '697107581860bf853828ac14_a024.webp' },
+  { id: 'g2', name: 'Sandevistan', type: 'gear', cost: 3, color: 'green', tags: [TAGS.CYBERWARE], sellable: true, effect: 'Equipped Unit gets +3 Power. This Unit can attack spent Units this turn.', effectData: { type: 'GEAR_TRIGGER', action: 'CAN_ATTACK_SPENT_UNITS_THIS_TURN' }, powerBonus: 3, imageUrl: BASE_IMG + '697107581860bf853828ac14_a024.webp' },
   { id: 'g3', name: 'Kiroshi Optics', type: 'gear', cost: 1, color: 'yellow', tags: [TAGS.CYBERWARE, TAGS.TECH], sellable: true, effect: 'Equipped Unit gets +1 Power. ATTACK: Look at a face-down rival Legend (your eyes only).', powerBonus: 1, attackEffect: 'kiroshiPeek', imageUrl: BASE_IMG + '697107581860bf853828ac16_a026.webp' },
   { id: 'g4', name: 'Mandibular Upgrade', type: 'gear', cost: 1, color: 'yellow', tags: [TAGS.CYBERWARE], sellable: true, effect: 'Equipped Unit gains BLOCKER.', powerBonus: 0, grantsBlocker: true, imageUrl: BASE_IMG + '697107581860bf853828ac17_a027.webp' },
   { id: 'g5', name: 'Satori', subtitle: 'Sword of Saburo', type: 'gear', cost: 2, color: 'red', tags: [TAGS.CYBERWARE, TAGS.ARASAKA], sellable: true, effect: 'Equipped Unit gets +1 Power. ATTACK: If this Unit wins a fight, draw a card.', powerBonus: 1, imageUrl: BASE_IMG + '697107581860bf853828ac11_a020.webp' },
@@ -75,7 +75,7 @@ const ALL_NON_LEGEND = [...UNITS_POOL, ...PROGRAMS_POOL, ...GEAR_POOL];
 function fisherYates(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(Math.random() * (i + 1);
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
