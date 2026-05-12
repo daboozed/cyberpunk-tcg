@@ -54,6 +54,8 @@ function payProgramCost(player, card) {
       mpSave,
     } = props;
 
+    const showPlayerLegendScan = gs.pendingLegendPeek?.owner === "player";
+
     return (
       <>
         <CardDetailModal
@@ -72,7 +74,7 @@ function payProgramCost(player, card) {
             />
           )}
 
-        {gs.pendingLegendPeek && (
+        {showPlayerLegendScan && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
             <div className="bg-card border border-cyan-500 rounded-xl p-6 max-w-4xl w-full mx-4">
               <h2 className="font-orbitron text-xl text-cyan-400 mb-2">
