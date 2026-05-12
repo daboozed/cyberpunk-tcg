@@ -76,7 +76,18 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
     s.gameLog.push({msg,time:Date.now()});
   }
 
-  function applyFirstPlayerLegendHandicap(s) {
+  export function hasAttachedGearNamed(unit, gearName){
+    const targetName = gearName?.toLowerCase();
+    return (unit?.gear || []).some(g => g?.name?.toLowerCase() === targetName);
+  }
+
+  export function canUnitAttackThisTurn(unit){
+    if (!unit || unit.spent || unit.cantAttack) return false;
+    if (unit.justPlayed && !hasAttachedGearNamed(unit, "sandevistan")) return false;
+    return true;
+  }
+
+function applyFirstPlayerLegendHandicap(s) {
   const p = s.firstPlayer === "player" ? s.player : s.opponent;
   const spentLegends = (p.legends || []).slice(0, 2);
 
@@ -130,36 +141,36 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
   // MULLIGAN
   // =========================
   export function mulligan(state,doMulligan){
-    const s=clone(state);
+  const s=clone(state);
 
-    if(doMulligan){
-      s.player.deck=shuffle([...s.player.deck,...s.player.hand]);
-      s.player.hand=[];
-      for(let i=0;i<6;i++){
-        if(s.player.deck.length) s.player.hand.push(s.player.deck.pop());
-      } 
-      log(s,"Player 1 mulligans");
-    }else{
-      log(s,"Player 1 keeps their hand");
+  if(doMulligan){
+    s.player.deck=shuffle([...s.player.deck,...s.player.hand]);
+    s.player.hand=[];
+    for(let i=0;i<6;i++){
+      if(s.player.deck.length) s.player.hand.push(s.player.deck.pop());
+    } 
+    log(s,"Player 1 mulligans");
+  }else{
+    log(s,"Player 1 keeps their hand");
+  }
+
+  // AI decides whether to mulligan
+  const aiCheapUnits = s.opponent.hand.filter(c => c.type === 'unit' && (c.cost||0) <= 3);
+  if(aiCheapUnits.length < 2){
+    s.opponent.deck = shuffle([...s.opponent.deck,...s.opponent.hand]);
+    s.opponent.hand = [];
+    for(let i=0;i<6;i++){
+      if(s.opponent.deck.length) s.opponent.hand.push(s.opponent.deck.pop());
     }
+    log(s,"Player 2 mulligans");
+  }else{
+    log(s,"Player 2 keeps their hand");
+  }
 
-    // AI decides whether to mulligan
-    const aiCheapUnits = s.opponent.hand.filter(c => c.type === 'unit' && (c.cost||0) <= 3);
-    if(aiCheapUnits.length < 2){
-      s.opponent.deck = shuffle([...s.opponent.deck,...s.opponent.hand]);
-      s.opponent.hand = [];
-      for(let i=0;i<6;i++){
-        if(s.opponent.deck.length) s.opponent.hand.push(s.opponent.deck.pop());
-      }
-      log(s,"Player 2 mulligans");
-    }else{
-      log(s,"Player 2 keeps their hand");
-    }
+  log(s,"*************** START! ***************");
 
-    log(s,"*************** START! ***************");
-
-    s.phase=PHASES.READY;
-    return readyPhase(s);
+  s.phase=PHASES.READY;
+  return readyPhase(s);
   }
 
   // =========================
@@ -514,7 +525,7 @@ export function resolveAfterpartyAdjustment(state, gigIndex, adjustment) {
   if(s.phase !== PHASES.ATTACK) return s;
 
   const attacker = s.player.field.find(u => u.uid === attackerUid);
-  if(!attacker || attacker.spent || attacker.justPlayed || attacker.cantAttack) return s;
+  if(!canUnitAttackThisTurn(attacker)) return s;
 
   const idx = s.opponent.gigDice.findIndex(d => d.id === gigId);
   if(idx === -1) return s;
@@ -539,7 +550,7 @@ log(s, `     ${attacker.name} steals Gig (${stolen.label} — value: ${stolen.va
     if(s.phase !== PHASES.ATTACK) return s;
 
     const attacker = s.player.field.find(u => u.uid === attackerUid);
-    if(!attacker || attacker.spent || attacker.justPlayed || attacker.cantAttack) return s;
+    if(!canUnitAttackThisTurn(attacker)) return s;
 
     attacker.spent = true;
 
@@ -576,7 +587,7 @@ log(s, `     ${attacker.name} steals Gig (${stolen.label} — value: ${stolen.va
 
     const attacker = s.player.field.find(u => u.uid === attackerUid);
     const defender = s.opponent.field.find(u => u.uid === defenderUid);
-    if(!attacker || attacker.spent || attacker.justPlayed || !defender) return s;
+    if(!canUnitAttackThisTurn(attacker) || !defender) return s;
 
     attacker.spent = true;
 
