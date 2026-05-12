@@ -264,8 +264,8 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
       const canAttack =
         isAttackPhase &&
         !unit.spent &&
-        !unit.justPlayed &&
-        !unit.cantAttack;
+        !unit.cantAttack &&
+        (!unit.justPlayed || unit.canAttackSpentUnitsThisTurn);
 
       const canBlock =
         eligibleBlockerUids.includes(unit.uid) &&
@@ -365,6 +365,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
   pendingProgram?.targetType === "friendlyUnit";
 
     const isFloorItTargeting = pendingProgram?.targetType === "spentUnitMax4";
+    const isGearTargeting = !isOpponent && pendingProgram?.targetType === "friendlyGearUnit";
       
       const borderColor =
         isOpponent ? "#ff3366" : "#00ffff";
@@ -700,7 +701,7 @@ function LegendsRow({ legends, borderColor, onLegendClick, onHover, onLeave }) {
         field={player.field}
         borderColor={borderColor}
         selectedAttacker={selectedAttacker}
-        targetingGlow={pendingProgram?.targetType === "friendlyUnit" || isFloorItTargeting}
+        targetingGlow={pendingProgram?.targetType === "friendlyUnit" || isFloorItTargeting || isGearTargeting}
         targetingGlowTone={isFloorItTargeting ? "blue" : pendingProgram?.card?.id === "p1" ? "blue" : "green"}
         targetFilter={isFloorItTargeting ? (unit) => unit.spent && (unit.cost || 0) <= 4 : undefined}
         pendingBlock={pendingBlock}
