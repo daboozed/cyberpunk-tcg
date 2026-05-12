@@ -76,6 +76,25 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
     s.gameLog.push({msg,time:Date.now()});
   }
 
+function cardTextMatchesAttackSpentUnits(card) {
+  const effect = card?.effectData || card?.effect;
+  const text = `${card?.name || ""} ${card?.text || ""} ${card?.rules_text || ""} ${card?.description || ""} ${typeof effect === "string" ? effect : ""}`
+    .toLowerCase();
+
+  return (
+    text.includes("attack spent") ||
+    text.includes("can attack spent units") ||
+    text.includes("can attack spent unit") ||
+    effect?.action === "CAN_ATTACK_SPENT_UNITS_THIS_TURN"
+  );
+}
+
+export function unitCanAttackSpentUnitsThisTurn(unit) {
+  if (!unit) return false;
+  if (unit.canAttackSpentUnitsThisTurn) return true;
+  return (unit.gear || []).some(cardTextMatchesAttackSpentUnits);
+}
+
   export function canUnitAttackThisTurn(unit){
     if (!unit || unit.spent || unit.cantAttack) return false;
     if (unit.justPlayed) return false;
@@ -84,7 +103,7 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
 
   export function canUnitAttackSpentUnitThisTurn(unit){
     if (!unit || unit.spent || unit.cantAttack) return false;
-    if (unit.justPlayed && !unit.canAttackSpentUnitsThisTurn) return false;
+    if (unit.justPlayed && !unitCanAttackSpentUnitsThisTurn(unit)) return false;
     return true;
   }
 
@@ -93,14 +112,7 @@ function normalizeCardEffect(card) {
 
   if (effect && typeof effect === "object") return effect;
 
-  const text = `${card?.name || ""} ${card?.text || ""} ${card?.rules_text || ""} ${typeof effect === "string" ? effect : ""}`
-    .toLowerCase();
-
-  if (
-    text.includes("attack spent") ||
-    text.includes("can attack spent units") ||
-    text.includes("can attack spent unit")
-  ) {
+  if (cardTextMatchesAttackSpentUnits(card)) {
     return {
       type: "GEAR_TRIGGER",
       powerBonus: card?.powerBonus || 3,
