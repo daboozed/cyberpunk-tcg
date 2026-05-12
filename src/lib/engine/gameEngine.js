@@ -76,14 +76,15 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
     s.gameLog.push({msg,time:Date.now()});
   }
 
-  export function hasAttachedGearNamed(unit, gearName){
-    const targetName = gearName?.toLowerCase();
-    return (unit?.gear || []).some(g => g?.name?.toLowerCase() === targetName);
-  }
-
   export function canUnitAttackThisTurn(unit){
     if (!unit || unit.spent || unit.cantAttack) return false;
-    if (unit.justPlayed && !hasAttachedGearNamed(unit, "sandevistan")) return false;
+    if (unit.justPlayed) return false;
+    return true;
+  }
+
+  export function canUnitAttackSpentUnitThisTurn(unit){
+    if (!unit || unit.spent || unit.cantAttack) return false;
+    if (unit.justPlayed && !unit.canAttackSpentUnitsThisTurn) return false;
     return true;
   }
 
@@ -387,6 +388,14 @@ if (card.type === "program") {
     if(target) {
       if(!target.gear) target.gear = [];
       target.gear.push({...card, uid: uid()});
+      resolveEffect(card.effect, {
+        state: s,
+        player: "player",
+        unit: target,
+        sourceUnit: target,
+        targetUid: target.uid,
+        sourceUid: target.uid
+      });
       log(s,`     Equipped ${card.name} to ${target.name}`);
       return s;
     }
@@ -587,7 +596,7 @@ log(s, `     ${attacker.name} steals Gig (${stolen.label} — value: ${stolen.va
 
     const attacker = s.player.field.find(u => u.uid === attackerUid);
     const defender = s.opponent.field.find(u => u.uid === defenderUid);
-    if(!canUnitAttackThisTurn(attacker) || !defender) return s;
+    if(!canUnitAttackSpentUnitThisTurn(attacker) || !defender || !defender.spent) return s;
 
     attacker.spent = true;
 
