@@ -88,6 +88,30 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
     return true;
   }
 
+function normalizeCardEffect(card) {
+  const effect = card?.effectData || card?.effect;
+
+  if (effect && typeof effect === "object") return effect;
+
+  const text = `${card?.name || ""} ${card?.text || ""} ${card?.rules_text || ""} ${typeof effect === "string" ? effect : ""}`
+    .toLowerCase();
+
+  if (
+    text.includes("attack spent") ||
+    text.includes("can attack spent units") ||
+    text.includes("can attack spent unit")
+  ) {
+    return {
+      type: "GEAR_TRIGGER",
+      powerBonus: card?.powerBonus || 3,
+      trigger: "onPlay",
+      action: "CAN_ATTACK_SPENT_UNITS_THIS_TURN"
+    };
+  }
+
+  return effect || null;
+}
+
 function applyFirstPlayerLegendHandicap(s) {
   const p = s.firstPlayer === "player" ? s.player : s.opponent;
   const spentLegends = (p.legends || []).slice(0, 2);
@@ -386,9 +410,10 @@ if (card.type === "program") {
   if(card.type === 'gear' && targetUid) {
     const target = p.field.find(u => u.uid === targetUid);
     if(target) {
+      const gear = {...card, uid: uid()};
       if(!target.gear) target.gear = [];
-      target.gear.push({...card, uid: uid()});
-      resolveEffect(card.effect, {
+      target.gear.push(gear);
+      resolveEffect(normalizeCardEffect(gear), {
         state: s,
         player: "player",
         unit: target,
