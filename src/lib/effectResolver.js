@@ -173,6 +173,10 @@ export function applyEndOfTurnCleanup(state) {
   p1.forEach(uid => defeatUnit(s, "player", uid));
   p2.forEach(uid => defeatUnit(s, "opponent", uid));
 
+  [...s.player.field, ...s.opponent.field].forEach(unit => {
+    delete unit.canAttackSpentUnitsThisTurn;
+  });
+
   return s;
 }
 
@@ -286,6 +290,10 @@ function runAction(action, ctx, actions = [], index = 0) {
 
     case "IF_STARS_7_DRAW_1":
       drawIfStreetCred(ctx, 7, 1);
+      break;
+
+    case "CAN_ATTACK_SPENT_UNITS_THIS_TURN":
+      grantAttackSpentUnitsThisTurn(ctx);
       break;
 
     case "PEEK_FRIENDLY_FACEDOWN_LEGEND":
@@ -409,6 +417,20 @@ function openPeekLegendModal(ctx) {
     type: "peekLegend",
     player: ctx.player
   });
+  return ctx.state;
+}
+
+function grantAttackSpentUnitsThisTurn(ctx) {
+  const ownerKey = ctx.player || "player";
+  const unit =
+    ctx.unit ||
+    ctx.sourceUnit ||
+    ctx.state?.[ownerKey]?.field?.find(u => u.uid === ctx.targetUid || u.uid === ctx.sourceUid);
+
+  if (!unit) return ctx.state;
+
+  unit.canAttackSpentUnitsThisTurn = true;
+  log(ctx.state, `     ${unit.name} can attack spent units this turn`);
   return ctx.state;
 }
 
