@@ -101,6 +101,8 @@ const passBtn = `
   const [peekIndex, setPeekIndex] = useState(null);
 
   const isGameOver = gs.phase === PHASES.GAME_OVER;
+  const selectedAttackerUnit = gs.player?.field?.find(u => u.uid === selectedAttacker);
+  const selectedAttackerOnlySpentUnits = !!selectedAttackerUnit?.canAttackSpentUnitsThisTurn && !!selectedAttackerUnit?.justPlayed;
   const {
     waitingForOpponent,
     setWaitingForOpponent,
@@ -201,6 +203,11 @@ const die = side?.fixerArea?.[index];
       return;
     }
     setGearTarget(index);
+    setPendingProgram({
+      card,
+      cardIndex: index,
+      targetType: "friendlyGearUnit"
+    });
     setGs(prev => ({ ...prev, message: 'Select a friendly unit to equip this Gear to.' }));
     return;
   }
@@ -328,6 +335,7 @@ const die = side?.fixerArea?.[index];
     const newGs = playCard(gs, gearTarget, unit.uid);
     setGs(newGs);
     setGearTarget(null);
+    setPendingProgram(null);
     setactualIndex(null);
     setSelectedAttacker(null);
 
@@ -361,7 +369,12 @@ const die = side?.fixerArea?.[index];
 }
 
 if (gs.phase === PHASES.ATTACK) {
-  if (!unit || unit.spent || unit.justPlayed || unit.cantAttack) return;
+  if (
+    !unit ||
+    unit.spent ||
+    unit.cantAttack ||
+    (unit.justPlayed && !unit.canAttackSpentUnitsThisTurn)
+  ) return;
 
   setSelectedAttacker(prev =>
     prev === unit.uid ? null : unit.uid
@@ -422,6 +435,7 @@ setactualIndex(null);
 const handleAttackGig = useCallback((gigIndex) => {
   if (gs.phase !== PHASES.ATTACK) return;
   if (!selectedAttacker) return;
+  if (selectedAttackerOnlySpentUnits) return;
 
   const gig = gs.opponent.gigDice?.[gigIndex];
   if (!gig?.id) return;
@@ -433,7 +447,7 @@ const handleAttackGig = useCallback((gigIndex) => {
 
   if (isMultiplayer) mpSave(newGs);
 
-}, [gs, selectedAttacker, isMultiplayer, mpSave]);
+}, [gs, selectedAttacker, selectedAttackerOnlySpentUnits, isMultiplayer, mpSave]);
 
   const handleStartAttack = useCallback(() => {
     const newGs = startAttackPhase(gs);
@@ -446,6 +460,7 @@ const handleAttackGig = useCallback((gigIndex) => {
     setactualIndex(null);
     setSelectedAttacker(null);
     setGearTarget(null);
+    setPendingProgram(null);
     setRolledThisTurn(false);
     
     if (!isMultiplayer && gs.currentPlayer === "player") {
@@ -533,6 +548,7 @@ const handleAttackGig = useCallback((gigIndex) => {
   setactualIndex(null);
   setSelectedAttacker(null);
   setGearTarget(null);
+  setPendingProgram(null);
 
   const savedDeck = JSON.parse(localStorage.getItem('cpTCG_deck') || 'null');
 
@@ -621,13 +637,17 @@ return (
    
    <PlayerArea
       player={gs.opponent}
-      pendingProgram={pendingProgram}
+      pendingProgram={
+        selectedAttackerOnlySpentUnits
+          ? { targetType: "spentUnitMax4" }
+          : pendingProgram
+      }
       rolledThisTurn={rolledThisTurn}
       isOpponent
       phase={gs.phase}
       selectedAttacker={selectedAttacker}
       onFieldUnitClick={handleOpponentFieldClick}
-      onAttackGig={handleAttackGig}
+      onAttackGig={selectedAttackerOnlySpentUnits ? undefined : handleAttackGig}
       onRollGig={handlePickGig}
       
     />
