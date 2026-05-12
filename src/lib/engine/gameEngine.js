@@ -76,6 +76,26 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
     s.gameLog.push({msg,time:Date.now()});
   }
 
+function attackDebugUnit(unit) {
+  return {
+    name: unit?.name,
+    uid: unit?.uid,
+    spent: unit?.spent,
+    justPlayed: unit?.justPlayed,
+    cantAttack: unit?.cantAttack,
+    canAttackSpentUnitsThisTurn: unit?.canAttackSpentUnitsThisTurn,
+    gear: (unit?.gear || []).map(g => ({
+      name: g?.name,
+      id: g?.id,
+      effect: g?.effect,
+      effectData: g?.effectData,
+      text: g?.text,
+      rules_text: g?.rules_text,
+      description: g?.description,
+    }))
+  };
+}
+
 function cardTextMatchesAttackSpentUnits(card) {
   const effect = card?.effectData || card?.effect;
   const text = `${card?.name || ""} ${card?.text || ""} ${card?.rules_text || ""} ${card?.description || ""} ${typeof effect === "string" ? effect : ""}`
@@ -106,6 +126,27 @@ export function unitCanAttackSpentUnitsThisTurn(unit) {
     if (unit.justPlayed && !unitCanAttackSpentUnitsThisTurn(unit)) return false;
     return true;
   }
+
+export function explainAttackEligibility(unit) {
+  const normal = canUnitAttackThisTurn(unit);
+  const spentUnitOnly = canUnitAttackSpentUnitThisTurn(unit);
+  const hasSpentUnitPermission = unitCanAttackSpentUnitsThisTurn(unit);
+
+  let reason = "allowed";
+  if (!unit) reason = "no unit";
+  else if (unit.spent) reason = "unit is spent";
+  else if (unit.cantAttack) reason = "unit has cantAttack";
+  else if (unit.justPlayed && !hasSpentUnitPermission) reason = "unit is justPlayed and has no spent-unit attack permission";
+  else if (unit.justPlayed && hasSpentUnitPermission) reason = "unit is justPlayed but has spent-unit attack permission";
+
+  return {
+    normal,
+    spentUnitOnly,
+    hasSpentUnitPermission,
+    reason,
+    unit: attackDebugUnit(unit),
+  };
+}
 
 function normalizeCardEffect(card) {
   const effect = card?.effectData || card?.effect;
@@ -433,6 +474,12 @@ if (card.type === "program") {
         targetUid: target.uid,
         sourceUid: target.uid
       });
+      console.log("[SANDY DEBUG] gear equipped", {
+        gear,
+        target: attackDebugUnit(target),
+        normalizedEffect: normalizeCardEffect(gear),
+        eligibility: explainAttackEligibility(target),
+      });
       log(s,`     Equipped ${card.name} to ${target.name}`);
       return s;
     }
@@ -524,6 +571,10 @@ if (card.type === 'program' && card.effectData) {
 
     log(s,"Player 1 — ATTACK PHASE");
     s.phase = PHASES.ATTACK;
+    console.log("[SANDY DEBUG] start attack phase", {
+      playerField: (s.player.field || []).map(u => explainAttackEligibility(u)),
+      opponentSpentUnits: (s.opponent.field || []).filter(u => u?.spent).map(attackDebugUnit),
+    });
     return s;
   }
 
@@ -571,7 +622,10 @@ export function resolveAfterpartyAdjustment(state, gigIndex, adjustment) {
   if(s.phase !== PHASES.ATTACK) return s;
 
   const attacker = s.player.field.find(u => u.uid === attackerUid);
-  if(!canUnitAttackThisTurn(attacker)) return s;
+  if(!canUnitAttackThisTurn(attacker)) {
+    console.warn("[SANDY DEBUG] resolveGigSteal blocked", explainAttackEligibility(attacker));
+    return s;
+  }
 
   const idx = s.opponent.gigDice.findIndex(d => d.id === gigId);
   if(idx === -1) return s;
@@ -596,7 +650,10 @@ log(s, `     ${attacker.name} steals Gig (${stolen.label} — value: ${stolen.va
     if(s.phase !== PHASES.ATTACK) return s;
 
     const attacker = s.player.field.find(u => u.uid === attackerUid);
-    if(!canUnitAttackThisTurn(attacker)) return s;
+    if(!canUnitAttackThisTurn(attacker)) {
+      console.warn("[SANDY DEBUG] attackRival blocked", explainAttackEligibility(attacker));
+      return s;
+    }
 
     attacker.spent = true;
 
@@ -629,11 +686,30 @@ log(s, `     ${attacker.name} steals Gig (${stolen.label} — value: ${stolen.va
 
   export function attackUnit(state, attackerUid, defenderUid){
     const s = clone(state);
-    if(s.phase !== PHASES.ATTACK) return s;
+    if(s.phase !== PHASES.ATTACK) {
+      console.warn("[SANDY DEBUG] attackUnit blocked: wrong phase", { phase: s.phase });
+      return s;
+    }
 
     const attacker = s.player.field.find(u => u.uid === attackerUid);
     const defender = s.opponent.field.find(u => u.uid === defenderUid);
-    if(!canUnitAttackSpentUnitThisTurn(attacker) || !defender || !defender.spent) return s;
+    const attackEligibility = explainAttackEligibility(attacker);
+    console.log("[SANDY DEBUG] attackUnit attempt", {
+      attackerUid,
+      defenderUid,
+      attackEligibility,
+      defender: attackDebugUnit(defender),
+      defenderIsSpent: !!defender?.spent,
+    });
+
+    if(!canUnitAttackSpentUnitThisTurn(attacker) || !defender || !defender.spent) {
+      console.warn("[SANDY DEBUG] attackUnit blocked", {
+        attackEligibility,
+        hasDefender: !!defender,
+        defenderIsSpent: !!defender?.spent,
+      });
+      return s;
+    }
 
     attacker.spent = true;
 
