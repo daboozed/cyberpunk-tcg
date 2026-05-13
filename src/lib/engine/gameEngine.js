@@ -819,12 +819,6 @@ export function resolveBlockerDecision(state, blockerUid = null) {
   // =========================
 // HELPERS
 // =========================
-function getUnitOwnerKey(state, unit) {
-  if (state.player.field.some(u => u.uid === unit.uid)) return "player";
-  if (state.opponent.field.some(u => u.uid === unit.uid)) return "opponent";
-  return null;
-}
-
 function getGearEffect(gear) {
   const rawEffect = gear?.effectData || gear?.effect || gear || null;
 
