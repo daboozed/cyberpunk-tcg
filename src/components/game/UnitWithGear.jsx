@@ -45,7 +45,29 @@ function getTargetGlowStyles(tone) {
   };
 }
 
-export default function UnitWithGear({ unit, selected, attackTarget = false, targetingGlow = false, targetingGlowTone = "green", blockerGlow = false, onClick }) {
+function sameGearTarget(a, b) {
+  return !!a && !!b && a.unitUid === b.unitUid && a.gearUid === b.gearUid;
+}
+
+function getGearTarget(unit, gear, index, pendingGearChoice) {
+  return pendingGearChoice?.eligible?.find((target) =>
+    target.unitUid === unit.uid &&
+    (target.gearUid ? target.gearUid === gear.uid : target.gearIndex === index)
+  );
+}
+
+export default function UnitWithGear({
+  unit,
+  selected,
+  attackTarget = false,
+  targetingGlow = false,
+  targetingGlowTone = "green",
+  blockerGlow = false,
+  onClick,
+  pendingGearChoice = null,
+  selectedGearChoice = null,
+  onGearChoiceClick,
+}) {
   const gear = unit.gear || [];
   const totalHeight = CARD_H + gear.length * PEEK;
   const isTargetHighlighted = targetingGlow;
@@ -86,9 +108,20 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
     >
 
       {/* Gear cards — each shows only its bottom PEEK px */}
-      {gear.map((g, i) => (
+      {gear.map((g, i) => {
+        const gearTarget = getGearTarget(unit, g, i, pendingGearChoice);
+        const eligibleGear = !!gearTarget;
+        const selectedGear = sameGearTarget(gearTarget, selectedGearChoice);
+
+        return (
         <div
           key={g.uid || i}
+          onClick={(event) => {
+            if (!eligibleGear) return;
+            event.stopPropagation();
+            onGearChoiceClick?.(gearTarget);
+          }}
+          title={eligibleGear ? `Choose ${g.name}` : undefined}
           style={{
             position: 'absolute',
             top: CARD_H + i * PEEK,
@@ -97,8 +130,24 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
             height: PEEK,
             overflow: 'hidden',
             borderRadius: '0 0 6px 6px',
-            border: '1px solid rgba(244,63,94,0.5)',
-            zIndex: i + 1,
+            border: selectedGear
+              ? '2px solid rgba(250,204,21,0.95)'
+              : eligibleGear
+                ? '2px solid rgba(255,23,68,0.95)'
+                : '1px solid rgba(244,63,94,0.5)',
+            zIndex: eligibleGear ? gear.length + 6 + i : i + 1,
+            cursor: eligibleGear ? 'crosshair' : undefined,
+            boxShadow: selectedGear
+              ? '0 0 0 2px rgba(250,204,21,0.7), 0 0 12px rgba(250,204,21,0.75), 0 0 24px rgba(250,204,21,0.38)'
+              : eligibleGear
+                ? '0 0 0 1px rgba(255,23,68,0.78), 0 0 11px rgba(255,23,68,0.72), 0 0 20px rgba(255,23,68,0.35)'
+                : 'none',
+            filter: selectedGear
+              ? 'drop-shadow(0 0 7px rgba(250,204,21,0.85)) drop-shadow(0 0 15px rgba(250,204,21,0.55))'
+              : eligibleGear
+                ? 'drop-shadow(0 0 6px rgba(255,23,68,0.85)) drop-shadow(0 0 13px rgba(255,23,68,0.55))'
+                : 'none',
+            transition: 'filter 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease',
           }}
         >
           {/* Full card image, anchored to bottom so bottom slice shows */}
@@ -123,7 +172,8 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
             )}
           </div>
         </div>
-      ))}
+      );
+      })}
 
       {/* Unit card on top */}
       <div style={{ position: 'absolute', top: 0, left: 0, width: CARD_W, height: CARD_H, zIndex: gear.length + 2 }}>
