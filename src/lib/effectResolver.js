@@ -23,9 +23,6 @@ function updateStreetCred(s) {
 // PROGRAM EFFECTS
 // =========================
 
-/**
- * p1 — Reboot Optics: Give a friendly Unit +4 Power this turn. Defeat it at end of turn.
- */
 export function resolveRebootOptics(state, targetUid) {
   const s = state;
   const unit = s.player.field.find(u => u.uid === targetUid);
@@ -36,9 +33,6 @@ export function resolveRebootOptics(state, targetUid) {
   return s;
 }
 
-/**
- * p2 — Floor It: Return a spent Unit with cost 4 or less to its owner's hand.
- */
 export function resolveFloorIt(state, targetUid) {
   const s = state;
   const idx = s.opponent.field.findIndex(u => u.uid === targetUid && u.spent && (u.cost || 0) <= 4);
@@ -49,9 +43,6 @@ export function resolveFloorIt(state, targetUid) {
   return s;
 }
 
-/**
- * p3 — Industrial Assembly: Increase a friendly Gig's value by 4. If 7+ ★, draw a card.
- */
 export function resolveIndustrialAssembly(state, gigId) {
   const s = state;
   const gig = s.player.gigDice.find(d => d.id === gigId);
@@ -65,9 +56,6 @@ export function resolveIndustrialAssembly(state, gigId) {
   return s;
 }
 
-/**
- * p4 — Afterparty at Lizzie's: Adjust a rival Gig's value by ±2. If a friendly Gig matches, draw a card.
- */
 export function resolveAfterpartyAdjustment(state, gigIndex, adjustment) {
   const s = state;
   const gig = s.opponent.gigDice[gigIndex];
@@ -82,9 +70,6 @@ export function resolveAfterpartyAdjustment(state, gigIndex, adjustment) {
   return s;
 }
 
-/**
- * p5 — Cyberpsychosis: Give an equipped Unit +2 Power per Gear this turn. Defeat at end of turn.
- */
 export function resolveCyberpsychosis(state, targetUid) {
   const s = state;
   const unit = s.player.field.find(u => u.uid === targetUid);
@@ -96,9 +81,6 @@ export function resolveCyberpsychosis(state, targetUid) {
   return s;
 }
 
-/**
- * p7 — Corporate Surveillance: Spend a rival Unit with cost 3 or less.
- */
 export function resolveCorporateSurveillance(state, targetUid) {
   const s = state;
   const unit = s.opponent.field.find(u => u.uid === targetUid && (u.cost || 0) <= 3);
@@ -112,9 +94,6 @@ export function resolveCorporateSurveillance(state, targetUid) {
 // GIG EFFECTS
 // =========================
 
-/**
- * Steal a Gig from the opponent.
- */
 export function resolveGigSteal(state, gigId) {
   const s = state;
   const idx = s.opponent.gigDice.findIndex(d => d.id === gigId);
@@ -125,9 +104,6 @@ export function resolveGigSteal(state, gigId) {
   return s;
 }
 
-/**
- * Boost a friendly Gig's value by a given amount.
- */
 export function resolveGigBoost(state, gigId, amount) {
   const s = state;
   const gig = s.player.gigDice.find(d => d.id === gigId);
@@ -142,9 +118,6 @@ export function resolveGigBoost(state, gigId, amount) {
 // COMBAT EFFECTS
 // =========================
 
-/**
- * Defeat a unit and move it to trash.
- */
 export function defeatUnit(state, playerKey, unitUid) {
   const s = state;
   const p = s[playerKey];
@@ -160,36 +133,47 @@ function getOpponentKey(playerKey = "player") {
   return playerKey === "opponent" ? "player" : "opponent";
 }
 
-function findGearTarget(state, ownerKey, filters = {}) {
-  const units = state?.[ownerKey]?.field || [];
+function getGearTargets(state, ownerKey, filters = {}) {
+  const sourceUnits = filters.unitUid
+    ? (state?.[ownerKey]?.field || []).filter(unit => unit.uid === filters.unitUid)
+    : (state?.[ownerKey]?.field || []);
 
-  for (const unit of units) {
-    const gearIndex = (unit.gear || []).findIndex(gear => {
-      if (filters.maxCost !== undefined && (gear.cost || 0) > filters.maxCost) return false;
-      return true;
-    });
-
-    if (gearIndex >= 0) {
-      return { unit, gearIndex, gear: unit.gear[gearIndex] };
-    }
-  }
-
-  return null;
+  return sourceUnits.flatMap(unit =>
+    (unit.gear || [])
+      .map((gear, gearIndex) => ({
+        unitUid: unit.uid,
+        unitName: unit.name,
+        gearIndex,
+        gearUid: gear.uid,
+        gearName: gear.name,
+        cost: gear.cost || 0,
+        imageUrl: gear.imageUrl,
+      }))
+      .filter(target => filters.maxCost === undefined || target.cost <= filters.maxCost)
+  );
 }
 
-function defeatGear(state, ownerKey, target) {
-  const s = state;
-  if (!target?.unit || target.gearIndex === undefined) return s;
+export function resolveSelectedGearEffect(state, selectedTarget) {
+  const s = structuredClone(state);
+  const pending = s.pendingGearEffect;
+  if (!pending || !selectedTarget) return s;
 
-  const [gear] = target.unit.gear.splice(target.gearIndex, 1);
+  const ownerKey = pending.ownerKey || "opponent";
+  const unit = s?.[ownerKey]?.field?.find(u => u.uid === selectedTarget.unitUid);
+  if (!unit) return s;
+
+  const gearIndex = (unit.gear || []).findIndex((gear, index) =>
+    selectedTarget.gearUid ? gear.uid === selectedTarget.gearUid : index === selectedTarget.gearIndex
+  );
+  if (gearIndex < 0) return s;
+
+  const [gear] = unit.gear.splice(gearIndex, 1);
   s[ownerKey].trash.push(gear);
   log(s, `     Defeated ${ownerKey === "player" ? "friendly" : "rival"} Gear ${gear.name}`);
+  delete s.pendingGearEffect;
   return s;
 }
 
-/**
- * Apply end-of-turn cleanup (defeat units marked for defeat, etc.)
- */
 export function applyEndOfTurnCleanup(state) {
   const s = state;
 
@@ -340,18 +324,36 @@ function runAction(action, ctx, actions = [], index = 0) {
 
     case "CHOOSE_RIVAL_GEAR_MAX_COST_2": {
       const ownerKey = getOpponentKey(ctx.player || "player");
-      ctx.selectedGearTarget = findGearTarget(ctx.state, ownerKey, { maxCost: 2 });
-      ctx.selectedGearOwner = ownerKey;
-      if (!ctx.selectedGearTarget) {
-        log(ctx.state, "     No valid rival Gear costing 2 or less");
+      const targets = getGearTargets(ctx.state, ownerKey, {
+        maxCost: 2,
+        unitUid: ctx.defenderUid,
+      });
+
+      if (!targets.length) {
+        log(ctx.state, "     No valid Gear on attacked Unit costing 2 or less");
         return "STOP";
       }
-      break;
+
+      ctx.state.pendingGearEffect = {
+        ownerKey,
+        targets,
+        title: "CHOOSE GEAR TO DESTROY",
+        description: "Choose eligible Gear attached to the attacked Unit.",
+        sourceUid: ctx.sourceUid,
+        sourceGearUid: ctx.sourceGear?.uid,
+      };
+      return "PAUSE";
     }
 
     case "DEFEAT_SELECTED_RIVAL_GEAR":
     case "DEFEAT_SELECTED_GEAR":
-      defeatGear(ctx.state, ctx.selectedGearOwner || getOpponentKey(ctx.player || "player"), ctx.selectedGearTarget);
+      if (ctx.selectedGearTarget) {
+        ctx.state.pendingGearEffect = {
+          ownerKey: ctx.selectedGearOwner || getOpponentKey(ctx.player || "player"),
+        };
+        const resolved = resolveSelectedGearEffect(ctx.state, ctx.selectedGearTarget);
+        Object.assign(ctx.state, resolved);
+      }
       break;
 
     case "CAN_ATTACK_SPENT_UNITS_THIS_TURN":
