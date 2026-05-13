@@ -76,6 +76,13 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
     s.gameLog.push({msg,time:Date.now()});
   }
 
+function getUnitOwnerKey(state, unit) {
+  if (!state || !unit) return "player";
+  if ((state.player?.field || []).some(u => u.uid === unit.uid)) return "player";
+  if ((state.opponent?.field || []).some(u => u.uid === unit.uid)) return "opponent";
+  return "player";
+}
+
 function cardTextMatchesAttackSpentUnits(card) {
   const effect = card?.effectData || card?.effect;
   const text = `${card?.name || ""} ${card?.text || ""} ${card?.rules_text || ""} ${card?.description || ""} ${typeof effect === "string" ? effect : ""}`
@@ -794,24 +801,29 @@ export function resolveBlockerDecision(state, blockerUid = null) {
   // =========================
 function triggerGearEffects(state, unit, trigger) {
   const gears = unit.gear || [];
+  const owner = getUnitOwnerKey(state, unit);
 
   for (const gear of gears) {
+    const effect = normalizeCardEffect(gear);
 
-    // KIROSHI OPTICS
+    if (effect?.type === "GEAR_TRIGGER" && effect?.trigger === trigger) {
+      resolveEffect(effect, {
+        state,
+        player: owner,
+        unit,
+        sourceUnit: unit,
+        sourceUid: unit.uid,
+        sourceGear: gear,
+      });
+    }
+
+    // KIROSHI OPTICS legacy fallback until card data is migrated
     if (
       gear.name?.toLowerCase().includes("kiroshi") &&
       trigger === "onAttack"
     ) {
-      const owner = state.player.field.some(u => u.uid === unit.uid)
-  ? "player"
-  : "opponent";
-
-state.pendingLegendPeek = { owner };
-
-log(
-  state,
-  "     Kiroshi Optics activates — peek at a friendly face-down Legend"
-       );
+      state.pendingLegendPeek = { owner };
+      log(state, "     Kiroshi Optics activates — peek at a friendly face-down Legend");
     }
   }
 }
