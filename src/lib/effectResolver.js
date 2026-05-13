@@ -156,6 +156,25 @@ export function defeatUnit(state, playerKey, unitUid) {
   return s;
 }
 
+function defeatRivalGearMaxCost(state, maxCost = 2) {
+  const s = state;
+  const rivalUnits = s.opponent?.field || [];
+
+  for (const unit of rivalUnits) {
+    const gearIndex = (unit.gear || []).findIndex(gear => (gear.cost || 0) <= maxCost);
+
+    if (gearIndex >= 0) {
+      const [gear] = unit.gear.splice(gearIndex, 1);
+      s.opponent.trash.push(gear);
+      log(s, `     Dying Night defeated rival Gear ${gear.name}`);
+      return s;
+    }
+  }
+
+  log(s, `     Dying Night found no rival Gear costing ${maxCost} or less`);
+  return s;
+}
+
 /**
  * Apply end-of-turn cleanup (defeat units marked for defeat, etc.)
  */
@@ -244,6 +263,10 @@ function runActionQueue(actions, ctx, startIndex = 0) {
     if (result === "PAUSE") {
       return ctx.state;
     }
+
+    if (result === "STOP") {
+      return ctx.state;
+    }
   }
 
   return ctx.state;
@@ -252,6 +275,10 @@ function runActionQueue(actions, ctx, startIndex = 0) {
 /* -------------------- TRIGGERS -------------------- */
 
 function resolveGearTrigger(effect, ctx) {
+  if (Array.isArray(effect.effectData)) {
+    return runActionQueue(effect.effectData.map(step => step.action || step.type), ctx);
+  }
+
   return runAction(effect.action, ctx);
 }
 
@@ -290,6 +317,21 @@ function runAction(action, ctx, actions = [], index = 0) {
 
     case "IF_STARS_7_DRAW_1":
       drawIfStreetCred(ctx, 7, 1);
+      break;
+
+    case "IF_STREET_CRED_7":
+      if ((ctx.state?.[ctx.player || "player"]?.streetCred || 0) < 7) {
+        log(ctx.state, "     Dying Night requires 7+ Street Cred");
+        return "STOP";
+      }
+      break;
+
+    case "CHOOSE_RIVAL_GEAR_MAX_COST_2":
+      ctx.dyingNightMaxGearCost = 2;
+      break;
+
+    case "DEFEAT_SELECTED_RIVAL_GEAR":
+      defeatRivalGearMaxCost(ctx.state, ctx.dyingNightMaxGearCost || 2);
       break;
 
     case "CAN_ATTACK_SPENT_UNITS_THIS_TURN":
