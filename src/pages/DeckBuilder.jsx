@@ -33,6 +33,16 @@ const MAX_COPIES = 3;
 const REQUIRED_LEGENDS = 3;
 const MAIN_DECK_SIZE = 27;
 
+function normalizeName(name = "") {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function loadSavedDeck() {
   try { return JSON.parse(localStorage.getItem('cpTCG_deck') || 'null'); } catch { return null; }
 }
@@ -69,37 +79,44 @@ export default function DeckBuilder() {
     .then(res => res.json())
     .then(data => {
       console.log("FIRST CARD:", data.items?.[0]);
+      const apiCardsByName = Object.fromEntries(
+        (data.items || []).map(card => [normalizeName(card.name), card])
+      );
+
       setCards(
-  (data.items || []).map(card => {
-    const rawType = (card.card_type || "").toLowerCase();
-const rawColor = (card.color || "").toLowerCase();
+        ALL_CARDS_FLAT.map(localCard => {
+          const apiCard = apiCardsByName[normalizeName(localCard.name)] || {};
+          const rawType = (apiCard.card_type || localCard.type || "").toLowerCase();
+          const rawColor = (apiCard.color || localCard.color || "").toLowerCase();
 
-    return {
-      id: String(card.id),
-      name: card.name || "Unknown",
-      imageUrl: card.image_url || "",
+          return {
+            ...localCard,
+            id: localCard.id,
+            name: apiCard.name || localCard.name || "Unknown",
+            imageUrl: apiCard.image_url || localCard.imageUrl || "",
 
-      // ✅ MAP TYPE
-      type:
-        rawType.includes("legend") ? "legend" :
-        rawType.includes("program") ? "program" :
-        rawType.includes("gear") ? "gear" :
-        "unit",
+            // ✅ MAP TYPE
+            type:
+              rawType.includes("legend") ? "legend" :
+              rawType.includes("program") ? "program" :
+              rawType.includes("gear") ? "gear" :
+              "unit",
 
-      // ✅ MAP COLOR
-      color:
-  rawColor.includes("yellow") ? "yellow" :
-  rawColor.includes("green") ? "green" :
-  rawColor.includes("blue") ? "blue" :
-  rawColor.includes("red") ? "red" :
-  null,
-    };
-  })
-);
+            // ✅ MAP COLOR
+            color:
+              rawColor.includes("yellow") ? "yellow" :
+              rawColor.includes("green") ? "green" :
+              rawColor.includes("blue") ? "blue" :
+              rawColor.includes("red") ? "red" :
+              localCard.color || null,
+          };
+        })
+      );
       setLoading(false);
     })
     .catch(err => {
       console.error(err);
+      setCards(ALL_CARDS_FLAT);
       setLoading(false);
     });
 }, []);
