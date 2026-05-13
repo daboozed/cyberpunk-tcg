@@ -190,6 +190,9 @@ function FieldArea({
   pendingBlock = null,
   onBlock,
   targetFilter,
+  pendingGearChoice = null,
+  selectedGearChoice = null,
+  onGearChoiceClick,
 }) {
   const isAttackPhase = phase === PHASES.ATTACK;
   const eligibleBlockerUids = pendingBlock?.eligibleBlockerUids || [];
@@ -220,7 +223,7 @@ function FieldArea({
 
           return (
             <div key={unit.uid} className="relative flex flex-col items-center">
-              {canAttack && !pendingBlock && (
+              {canAttack && !pendingBlock && !pendingGearChoice && (
                 <button
                   onClick={() => onFieldUnitClick?.(unit)}
                   className="absolute -top-3 z-10 bg-red-600 text-white text-[10px] px-2 py-[2px] rounded border border-red-300 shadow-[0_0_10px_rgba(255,0,0,0.8)] hover:scale-110 transition"
@@ -245,6 +248,9 @@ function FieldArea({
                 targetingGlow={unitTargetingGlow}
                 targetingGlowTone={targetingGlowTone}
                 blockerGlow={canBlock}
+                pendingGearChoice={pendingGearChoice}
+                selectedGearChoice={selectedGearChoice}
+                onGearChoiceClick={onGearChoiceClick}
                 onClick={() => canBlock ? onBlock?.(unit.uid) : onFieldUnitClick?.(unit)}
               />
             </div>
@@ -271,6 +277,9 @@ export default function PlayerArea({
   onRollGig,
   onAttackGig,
   rolledThisTurn = false,
+  pendingGearChoice = null,
+  selectedGearChoice = null,
+  onGearChoiceClick,
 }) {
   const [hoveredLegend, setHoveredLegend] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -399,6 +408,9 @@ export default function PlayerArea({
                       targetingGlow={isFloorItTargeting || isSpentUnitAttackTargeting}
                       targetingGlowTone="red"
                       targetFilter={isSpentUnitAttackTargeting ? (unit) => unit.spent : (unit) => unit.spent && (unit.cost || 0) <= 4}
+                      pendingGearChoice={pendingGearChoice}
+                      selectedGearChoice={selectedGearChoice}
+                      onGearChoiceClick={onGearChoiceClick}
                     />
                   </div>
 
@@ -406,8 +418,8 @@ export default function PlayerArea({
                     <GigArea
                       gigs={player.gigDice || []}
                       title="GIG AREA"
-                      clickable={isAttackPhase && !!selectedAttacker && !!onAttackGig}
-                      attackGlow={isAttackPhase && !!selectedAttacker && !!onAttackGig && (player.gigDice || []).length > 0}
+                      clickable={isAttackPhase && !!selectedAttacker && !!onAttackGig && !pendingGearChoice}
+                      attackGlow={isAttackPhase && !!selectedAttacker && !!onAttackGig && !pendingGearChoice && (player.gigDice || []).length > 0}
                       onGigClick={(gigIndex) => onAttackGig?.(gigIndex)}
                     />
                   </div>
