@@ -156,22 +156,34 @@ export function defeatUnit(state, playerKey, unitUid) {
   return s;
 }
 
-function defeatRivalGearMaxCost(state, maxCost = 2) {
-  const s = state;
-  const rivalUnits = s.opponent?.field || [];
+function getOpponentKey(playerKey = "player") {
+  return playerKey === "opponent" ? "player" : "opponent";
+}
 
-  for (const unit of rivalUnits) {
-    const gearIndex = (unit.gear || []).findIndex(gear => (gear.cost || 0) <= maxCost);
+function findGearTarget(state, ownerKey, filters = {}) {
+  const units = state?.[ownerKey]?.field || [];
+
+  for (const unit of units) {
+    const gearIndex = (unit.gear || []).findIndex(gear => {
+      if (filters.maxCost !== undefined && (gear.cost || 0) > filters.maxCost) return false;
+      return true;
+    });
 
     if (gearIndex >= 0) {
-      const [gear] = unit.gear.splice(gearIndex, 1);
-      s.opponent.trash.push(gear);
-      log(s, `     Dying Night defeated rival Gear ${gear.name}`);
-      return s;
+      return { unit, gearIndex, gear: unit.gear[gearIndex] };
     }
   }
 
-  log(s, `     Dying Night found no rival Gear costing ${maxCost} or less`);
+  return null;
+}
+
+function defeatGear(state, ownerKey, target) {
+  const s = state;
+  if (!target?.unit || target.gearIndex === undefined) return s;
+
+  const [gear] = target.unit.gear.splice(target.gearIndex, 1);
+  s[ownerKey].trash.push(gear);
+  log(s, `     Defeated ${ownerKey === "player" ? "friendly" : "rival"} Gear ${gear.name}`);
   return s;
 }
 
@@ -321,17 +333,25 @@ function runAction(action, ctx, actions = [], index = 0) {
 
     case "IF_STREET_CRED_7":
       if ((ctx.state?.[ctx.player || "player"]?.streetCred || 0) < 7) {
-        log(ctx.state, "     Dying Night requires 7+ Street Cred");
+        log(ctx.state, "     Effect requires 7+ Street Cred");
         return "STOP";
       }
       break;
 
-    case "CHOOSE_RIVAL_GEAR_MAX_COST_2":
-      ctx.dyingNightMaxGearCost = 2;
+    case "CHOOSE_RIVAL_GEAR_MAX_COST_2": {
+      const ownerKey = getOpponentKey(ctx.player || "player");
+      ctx.selectedGearTarget = findGearTarget(ctx.state, ownerKey, { maxCost: 2 });
+      ctx.selectedGearOwner = ownerKey;
+      if (!ctx.selectedGearTarget) {
+        log(ctx.state, "     No valid rival Gear costing 2 or less");
+        return "STOP";
+      }
       break;
+    }
 
     case "DEFEAT_SELECTED_RIVAL_GEAR":
-      defeatRivalGearMaxCost(ctx.state, ctx.dyingNightMaxGearCost || 2);
+    case "DEFEAT_SELECTED_GEAR":
+      defeatGear(ctx.state, ctx.selectedGearOwner || getOpponentKey(ctx.player || "player"), ctx.selectedGearTarget);
       break;
 
     case "CAN_ATTACK_SPENT_UNITS_THIS_TURN":
