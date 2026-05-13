@@ -60,6 +60,7 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
       legends,
       trash:[],
       gigDice:[],
+      rolledFixerSides:[],
       streetCred:0,
       fixerArea:[
         {id:`${prefix}-d4`,sides:4,label:"d4"},
@@ -322,6 +323,14 @@ function applyFirstPlayerLegendHandicap(s) {
   }
 
   p.gigDice.push(newDie);
+
+  if (!Array.isArray(p.rolledFixerSides)) {
+  p.rolledFixerSides = [];
+}
+
+if (!p.rolledFixerSides.includes(die.sides)) {
+  p.rolledFixerSides.push(die.sides);
+}
   updateStreetCred(s);
 
   log(s, `     Rolled ${newDie.label} → ${finalValue}`);
@@ -644,6 +653,8 @@ log(s, `     ${attacker.name} steals Gig (${stolen.label} — value: ${stolen.va
 
     attacker.spent = true;
 
+
+    
 // Trigger attack gear effects FIRST
 triggerGearEffects(s, attacker, "onAttack");
 
@@ -654,10 +665,19 @@ const defPow = (defender.power || 0) + (defender.powerBonus || 0) +
   ((defender.gear || []).reduce((sum, g) => sum + (g.powerBonus || 0), 0));
 
     if (atkPow > defPow) {
-      const idx = s.opponent.field.findIndex(u => u.uid === defenderUid);
-      if(idx >= 0){ const [d] = s.opponent.field.splice(idx, 1); s.opponent.trash.push(d); }
-      log(s, `     ${attacker.name} defeats ${defender.name}`);
-    } else if (atkPow < defPow) {
+  const idx = s.opponent.field.findIndex(u => u.uid === defenderUid);
+
+  if (idx >= 0) {
+    const [d] = s.opponent.field.splice(idx, 1);
+    s.opponent.trash.push(d);
+  }
+
+  log(s, `     ${attacker.name} defeats ${defender.name}`);
+
+  triggerGearEffects(s, attacker, "onAttackWinVsUnit", {
+    defender,
+  });
+} else if (atkPow < defPow) {
       const idx = s.player.field.findIndex(u => u.uid === attackerUid);
       if(idx >= 0){ const [d] = s.player.field.splice(idx, 1); s.player.trash.push(d); }
       log(s, `     ${attacker.name} is defeated by ${defender.name}`);
@@ -797,9 +817,50 @@ export function resolveBlockerDecision(state, blockerUid = null) {
   }
 
   // =========================
-  // HELPERS
-  // =========================
-function triggerGearEffects(state, unit, trigger) {
+// HELPERS
+// =========================
+function getUnitOwnerKey(state, unit) {
+  if (state.player.field.some(u => u.uid === unit.uid)) return "player";
+  if (state.opponent.field.some(u => u.uid === unit.uid)) return "opponent";
+  return null;
+}
+
+function getGearEffect(gear) {
+  const rawEffect = gear?.effectData || gear?.effect || gear || null;
+
+  if (
+    gear?.name === "Satori" ||
+    String(rawEffect || "").toLowerCase().includes("draw a card")
+  ) {
+    return {
+      type: "GEAR_TRIGGER",
+      powerBonus: gear?.powerBonus || 1,
+      trigger: "onAttackWinVsUnit",
+      action: "DRAW",
+      amount: 1,
+    };
+  }
+
+  return rawEffect;
+}
+
+function drawCardsForPlayer(state, playerKey, amount = 1) {
+  const player = state[playerKey];
+  if (!player) return 0;
+
+  let drawn = 0;
+
+  for (let i = 0; i < amount; i++) {
+    if (!player.deck?.length) break;
+
+    player.hand.push(player.deck.pop());
+    drawn++;
+  }
+
+  return drawn;
+}
+
+function triggerGearEffects(state, unit, trigger, context = {}) {
   const gears = unit.gear || [];
   const owner = getUnitOwnerKey(state, unit);
 

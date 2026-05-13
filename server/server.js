@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import axios from "axios";
 import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
@@ -16,8 +17,30 @@ const allowedOrigins = new Set([
   "http://localhost:5174",
 ]);
 const isProduction = process.env.NODE_ENV === "production";
+const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 const sessions = new Map();
+
+function getSupabaseServiceKey() {
+  return (
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE
+  );
+}
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = getSupabaseServiceKey();
+const supabase =
+  supabaseUrl && supabaseServiceKey
+    ? createClient(supabaseUrl, supabaseServiceKey)
+    : null;
+
+if (!supabase) {
+  console.warn(
+    "Supabase is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
+  );
+}
 
 app.use(
   cors({
@@ -86,13 +109,126 @@ function getAvatarUrl(user) {
   return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
 }
 
+function makeSafeUserFromDb(user) {
+  return {
+    id: user.discord_id,
+    username: user.username,
+    globalName: user.global_name,
+    avatarUrl: user.avatar,
+    email: null,
+  };
+}
+
+async function persistDiscordUser(discordUser) {
+  if (!supabase) {
+    console.warn("Skipping user persistence because Supabase is not configured.");
+    return;
+  }
+
+  const discordId = discordUser.id;
+
+  const { data: existingUser, error: lookupError } = await supabase
+    .from("users")
+    .select("id, login_count")
+    .eq("discord_id", discordId)
+    .maybeSingle();
+
+  if (lookupError) {
+    console.error("Failed to look up Discord user", lookupError.message);
+  }
+
+  const payload = {
+    discord_id: discordId,
+    username: discordUser.username,
+    global_name: discordUser.global_name,
+    avatar: getAvatarUrl(discordUser),
+    display_name: discordUser.global_name || discordUser.username,
+    last_login: new Date().toISOString(),
+  };
+
+  if (existingUser) {
+    payload.login_count = (existingUser.login_count || 0) + 1;
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .upsert(payload, {
+      onConflict: "discord_id",
+    });
+
+  if (error) {
+    console.error("Failed to persist Discord user", error.message);
+  }
+}
+
+async function persistSession(sessionId, discordId) {
+  if (!supabase) return;
+
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_MS).toISOString();
+
+  const { error } = await supabase.from("sessions").upsert(
+    {
+      session_id: sessionId,
+      discord_id: discordId,
+      last_seen_at: new Date().toISOString(),
+      expires_at: expiresAt,
+    },
+    { onConflict: "session_id" }
+  );
+
+  if (error) {
+    console.error("Failed to persist auth session", error.message);
+  }
+}
+
+async function restoreSessionUser(sessionId) {
+  if (!supabase || !sessionId) return null;
+
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("sessions")
+    .select(
+      "session_id, expires_at, users:discord_id(discord_id, username, global_name, avatar)"
+    )
+    .eq("session_id", sessionId)
+    .gt("expires_at", now)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to restore auth session", error.message);
+    return null;
+  }
+
+  if (!data?.users) return null;
+
+  await supabase
+    .from("sessions")
+    .update({ last_seen_at: now })
+    .eq("session_id", sessionId);
+
+  const safeUser = makeSafeUserFromDb(data.users);
+  sessions.set(sessionId, safeUser);
+  return safeUser;
+}
+
+async function getSessionUser(req) {
+  const cookies = parseCookies(req);
+  const sessionId = cookies.cp_session;
+
+  if (!sessionId) return null;
+
+  const memoryUser = sessions.get(sessionId);
+  if (memoryUser) return memoryUser;
+
+  return restoreSessionUser(sessionId);
+}
+
 app.get("/", (req, res) => {
   res.send("Discord Login Server Running");
 });
 
-app.get("/auth/me", (req, res) => {
-  const cookies = parseCookies(req);
-  const user = cookies.cp_session ? sessions.get(cookies.cp_session) : null;
+app.get("/auth/me", async (req, res) => {
+  const user = await getSessionUser(req);
 
   if (!user) {
     return res.status(401).json({ user: null });
@@ -101,11 +237,42 @@ app.get("/auth/me", (req, res) => {
   res.json({ user });
 });
 
-app.post("/auth/logout", (req, res) => {
+app.get("/admin/users", async (req, res) => {
+  try {
+    if (!supabase) {
+      return res.status(500).json({
+        error:
+          "Supabase is not configured. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Render.",
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .order("last_login", { ascending: false });
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ users: data || [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/auth/logout", async (req, res) => {
   const cookies = parseCookies(req);
 
   if (cookies.cp_session) {
     sessions.delete(cookies.cp_session);
+
+    if (supabase) {
+      await supabase
+        .from("sessions")
+        .delete()
+        .eq("session_id", cookies.cp_session);
+    }
   }
 
   clearCookie(res, "cp_session");
@@ -176,6 +343,9 @@ app.get("/auth/discord/callback", async (req, res) => {
     });
 
     const discordUser = user.data;
+
+    await persistDiscordUser(discordUser);
+
     const safeUser = {
       id: discordUser.id,
       username: discordUser.username,
@@ -186,13 +356,14 @@ app.get("/auth/discord/callback", async (req, res) => {
 
     const sessionId = crypto.randomBytes(32).toString("hex");
     sessions.set(sessionId, safeUser);
+    await persistSession(sessionId, discordUser.id);
 
     clearCookie(res, "discord_oauth_state");
     setCookie(res, "cp_session", sessionId, {
       httpOnly: true,
       sameSite: getSameSiteCookiePolicy(),
       secure: isProduction,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: SESSION_MAX_AGE_MS,
       path: "/",
     });
 

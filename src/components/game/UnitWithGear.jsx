@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Shield } from "lucide-react";
 import GameCard from "./GameCard";
 
 const CARD_W = 80;
@@ -6,13 +7,26 @@ const CARD_H = 112;
 const PEEK = 22; // px of each gear card's bottom visible below the previous layer
 
 function hasKeyword(card, keyword) {
+  const normalizedKeyword = String(keyword || "").toLowerCase();
+
+  if (
+    normalizedKeyword === "blocker" &&
+    (card?.grantsBlocker === true || card?.effect?.grantsBlocker === true)
+  ) {
+    return true;
+  }
+
   const keywords = [
     ...(card?.keywords || []),
     ...(card?.effect?.keywords || []),
     ...(card?.effectData?.keywords || []),
+    ...(card?.effect?.effect?.keywords || []),
+    ...(card?.effectData?.effect?.keywords || []),
   ];
 
-  return keywords.includes(keyword);
+  return keywords
+    .map(k => String(k || "").toLowerCase())
+    .includes(normalizedKeyword);
 }
 
 function getBlockerSource(unit) {
@@ -92,7 +106,7 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
           style={{
             position: 'absolute',
             top: CARD_H + i * PEEK,
-            left: 0,
+            left: 8,
             width: CARD_W,
             height: PEEK,
             overflow: 'hidden',
@@ -142,13 +156,13 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
           title={blockerSource === "gear" ? "Blocker from gear" : "Blocker"}
           style={{
             position: 'absolute',
-            top: CARD_H - 20,
-            right: 14,
+            top: CARD_H - 30,
+            right: 16,
             zIndex: gear.length + 4,
-            width: 18,
-            height: 18,
+            width: 24,
+            height: 24,
             borderRadius: '50%',
-            background: blockerSource === 'gear' ? '#94a3b8' : '#00ffff',
+            background: blockerSource === 'gear' ? '#00ffff' : '#00ffff',
             border: '2px solid hsl(225 30% 6%)',
             display: 'flex',
             alignItems: 'center',
@@ -157,9 +171,11 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
             opacity: unit.spent ? 0.65 : 1,
           }}
         >
-          <span style={{ fontFamily: 'var(--font-orbitron)', fontWeight: 900, fontSize: 9, color: '#000', lineHeight: 1 }}>
-            B
-          </span>
+          <Shield
+  size={45}
+  strokeWidth={3}
+  color="#000000"
+/>
         </div>
       )}
 

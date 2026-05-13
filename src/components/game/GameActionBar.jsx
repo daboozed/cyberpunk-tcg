@@ -13,7 +13,7 @@ export default function GameActionBar({
   handleEndTurn,
 }) {
   return (
-    <div className="flex gap-4 justify-center mt-4">
+    <div className="flex gap-4 justify-center mt-12">
       <button
         className={cn(actionBtn, phaseButtonStyle)}
         onClick={handleStartAttack}
