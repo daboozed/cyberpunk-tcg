@@ -52,9 +52,13 @@ function payProgramCost(player, card) {
 
       isMultiplayer,
       mpSave,
+      onConfirmGearChoice,
+      onCancelGearChoice,
     } = props;
 
     const showPlayerLegendScan = gs.pendingLegendPeek?.owner === "player";
+    const pendingGearChoice = gs.pendingGearChoice;
+    const selectedGearChoice = pendingGearChoice?.selected || null;
 
     return (
       <>
@@ -63,6 +67,51 @@ function payProgramCost(player, card) {
           open={!!detailCard}
           onClose={() => setDetailCard(null)}
         />
+
+        {pendingGearChoice && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="bg-card border border-red-500 rounded-xl p-6 max-w-lg w-full mx-4 shadow-[0_0_30px_rgba(255,23,68,0.25)]">
+              <h2 className="font-orbitron text-xl text-red-400 mb-2">
+                {pendingGearChoice.source || "Dying Night"}
+              </h2>
+
+              <p className="text-xs text-muted-foreground mb-3">
+                Choose a rival Gear costing 2 or less, then confirm. Click the highlighted Gear again to clear your selection.
+              </p>
+
+              <div className="rounded-lg border border-red-500/40 bg-black/40 p-3 mb-4 text-sm text-zinc-200">
+                {selectedGearChoice ? (
+                  <>
+                    Selected: <span className="text-yellow-300 font-semibold">{selectedGearChoice.gearName}</span>
+                    {selectedGearChoice.unitName ? (
+                      <span className="text-zinc-400"> from {selectedGearChoice.unitName}</span>
+                    ) : null}
+                  </>
+                ) : (
+                  <span className="text-zinc-400">No Gear selected yet.</span>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  className="flex-1"
+                  disabled={!selectedGearChoice}
+                  onClick={onConfirmGearChoice}
+                >
+                  Confirm
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={onCancelGearChoice}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {gs.phase === PHASES.BLOCKER_DECISION &&
           gs.pendingAttackers?.length > 0 && (
