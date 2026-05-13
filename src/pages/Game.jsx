@@ -12,7 +12,7 @@ import { useGameViewState } from "@/hooks/useGameViewState";
 import { useCardData } from "@/hooks/useCardData";
 import { useSinglePlayerSetup } from "@/hooks/useSinglePlayerSetup";
 import { useMultiplayerRoomSync } from "@/hooks/useMultiplayerRoomSync";
-import { resolveEffect } from "@/lib/effectResolver";
+import { defeatRivalGearTarget, resolveEffect } from "@/lib/effectResolver";
 import GameModals from "@/components/game/GameModals";
 import GameTopBar from "@/components/game/GameTopBar";
 import GameOverOverlay from "@/components/game/GameOverOverlay";
@@ -48,6 +48,10 @@ import { buildCustomDeck } from "@/lib/cardPool";
 import PlayerArea from "@/components/game/PlayerArea";
 import HandArea from "@/components/game/HandArea";
 import GameLog from "@/components/game/GameLog";
+
+function sameGearChoice(a, b) {
+  return !!a && !!b && a.unitUid === b.unitUid && a.gearUid === b.gearUid;
+}
 
 export default function Game() {
   const navigate = useNavigate();
@@ -470,6 +474,44 @@ const handleAttackGig = useCallback((gigIndex) => {
 
 }, [gs, selectedAttacker, selectedAttackerOnlySpentUnits, isMultiplayer, mpSave]);
 
+  const handleGearChoiceClick = useCallback((target) => {
+    if (!gs.pendingGearChoice || !target) return;
+
+    setGs(prev => {
+      if (!prev.pendingGearChoice) return prev;
+      const selected = sameGearChoice(prev.pendingGearChoice.selected, target)
+        ? null
+        : target;
+      return {
+        ...prev,
+        pendingGearChoice: {
+          ...prev.pendingGearChoice,
+          selected,
+        }
+      };
+    });
+  }, [gs.pendingGearChoice]);
+
+  const handleConfirmGearChoice = useCallback(() => {
+    if (!gs.pendingGearChoice?.selected) return;
+
+    const newGs = structuredClone(gs);
+    defeatRivalGearTarget(newGs, newGs.pendingGearChoice.selected);
+    delete newGs.pendingGearChoice;
+
+    setGs(newGs);
+
+    if (isMultiplayer) mpSave(newGs);
+  }, [gs, isMultiplayer, mpSave]);
+
+  const handleCancelGearChoice = useCallback(() => {
+    const newGs = structuredClone(gs);
+    delete newGs.pendingGearChoice;
+    setGs(newGs);
+
+    if (isMultiplayer) mpSave(newGs);
+  }, [gs, isMultiplayer, mpSave]);
+
   const handleStartAttack = useCallback(() => {
     const newGs = startAttackPhase(gs);
     setGs(newGs);
@@ -670,6 +712,9 @@ return (
       onFieldUnitClick={handleOpponentFieldClick}
       onAttackGig={selectedAttackerOnlySpentUnits ? undefined : handleAttackGig}
       onRollGig={handlePickGig}
+      pendingGearChoice={gs.pendingGearChoice}
+      selectedGearChoice={gs.pendingGearChoice?.selected || null}
+      onGearChoiceClick={!disableActions ? handleGearChoiceClick : () => {}}
       
     />
 
@@ -788,6 +833,8 @@ return (
   isMultiplayer={isMultiplayer}
   mpSave={mpSave}
   setactualIndex={setactualIndex}
+  onConfirmGearChoice={handleConfirmGearChoice}
+  onCancelGearChoice={handleCancelGearChoice}
 />
 
     </div>
