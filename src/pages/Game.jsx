@@ -198,6 +198,13 @@ const die = side?.fixerArea?.[index];
   if (!card) return;
 
   if (card.type === 'gear') {
+    if (gearTarget === index || pendingProgram?.cardIndex === index) {
+      setGearTarget(null);
+      setPendingProgram(null);
+      setGs(prev => ({ ...prev, message: '' }));
+      return;
+    }
+
     if (gs.player.field.length === 0) {
       setGs(prev => ({ ...prev, message: 'No units on the field to equip Gear to!' }));
       return;
@@ -206,9 +213,9 @@ const die = side?.fixerArea?.[index];
     setPendingProgram({
       card,
       cardIndex: index,
-      targetType: "friendlyGearUnit"
+      targetType: card.id === "g6" ? "friendlyGearUnitOrLegend" : "friendlyGearUnit"
     });
-    setGs(prev => ({ ...prev, message: 'Select a friendly unit to equip this Gear to.' }));
+    setGs(prev => ({ ...prev, message: card.id === "g6" ? 'Select a friendly unit or face-up Legend to equip this Gear to.' : 'Select a friendly unit to equip this Gear to.' }));
     return;
   }
 
@@ -273,13 +280,27 @@ const die = side?.fixerArea?.[index];
 
   if (isMultiplayer) mpSave(newGs);
 
-}, [gs, pendingProgram, isMultiplayer, mpSave]);
+}, [gs, gearTarget, pendingProgram, isMultiplayer, mpSave]);
 
   const handleCallLegend = useCallback((index) => {
   if (gs.phase !== PHASES.PLAY) return;
 
   const selectedLegend = gs.player.legends[index];
   if (!selectedLegend) return;
+
+  if (gearTarget !== null && pendingProgram?.targetType === "friendlyGearUnitOrLegend") {
+    if (!selectedLegend.faceUp) return;
+
+    const newGs = playCard(gs, gearTarget, selectedLegend.uid);
+    setGs(newGs);
+    setGearTarget(null);
+    setPendingProgram(null);
+    setactualIndex(null);
+    setSelectedAttacker(null);
+
+    if (isMultiplayer) mpSave(newGs);
+    return;
+  }
 
   if (
     selectedLegend.faceUp &&
@@ -296,7 +317,7 @@ const die = side?.fixerArea?.[index];
   setGs(newGs);
 
   if (isMultiplayer) mpSave(newGs);
-}, [gs, isMultiplayer, mpSave]);
+}, [gs, gearTarget, pendingProgram, isMultiplayer, mpSave]);
 
   const resolveFloorItTarget = useCallback((ownerKey, unit) => {
     if (pendingProgram?.targetType !== "spentUnitMax4") return false;
