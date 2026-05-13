@@ -19,6 +19,52 @@ function updateStreetCred(s) {
   );
 }
 
+function rivalOf(playerKey = "player") {
+  return playerKey === "opponent" ? "player" : "opponent";
+}
+
+export function getEligibleRivalGearTargets(state, playerKey = "player", maxCost = 2) {
+  const rivalKey = rivalOf(playerKey);
+  const rival = state?.[rivalKey];
+
+  if (!rival?.field) return [];
+
+  return rival.field.flatMap((unit) =>
+    (unit.gear || [])
+      .filter((gear) => (gear.cost || 0) <= maxCost)
+      .map((gear, gearIndex) => ({
+        ownerKey: rivalKey,
+        unitUid: unit.uid,
+        unitName: unit.name,
+        gearUid: gear.uid,
+        gearIndex,
+        gearName: gear.name,
+        cost: gear.cost || 0,
+      }))
+  );
+}
+
+export function defeatRivalGearTarget(state, target) {
+  const s = state;
+  const ownerKey = target?.ownerKey || "opponent";
+  const owner = s?.[ownerKey];
+  const unit = owner?.field?.find((u) => u.uid === target?.unitUid);
+
+  if (!unit?.gear) return s;
+
+  const gearIndex = unit.gear.findIndex((gear, index) =>
+    target.gearUid ? gear.uid === target.gearUid : index === target.gearIndex
+  );
+
+  if (gearIndex === -1) return s;
+
+  const [defeatedGear] = unit.gear.splice(gearIndex, 1);
+  owner.trash.push(defeatedGear);
+  log(s, `     Dying Night defeats ${defeatedGear.name} from ${unit.name}`);
+
+  return s;
+}
+
 // =========================
 // PROGRAM EFFECTS
 // =========================
@@ -187,6 +233,14 @@ export function applyEndOfTurnCleanup(state) {
 export function resolveEffect(effect, ctx) {
   if (!effect || effect.type === "NONE") return ctx.state;
 
+  if (Array.isArray(effect)) {
+    return runEffectDataQueue(effect, ctx);
+  }
+
+  if (Array.isArray(effect.effectData)) {
+    return runEffectDataQueue(effect.effectData, ctx);
+  }
+
 console.log("Resolving:", effect.type, effect);
   
   switch (effect.type) {
@@ -249,9 +303,73 @@ function runActionQueue(actions, ctx, startIndex = 0) {
   return ctx.state;
 }
 
+function runEffectDataQueue(effectData, ctx, startIndex = 0) {
+  for (let i = startIndex; i < effectData.length; i++) {
+    const step = effectData[i];
+    const result = runEffectDataStep(step, ctx, effectData, i);
+
+    if (result === "PAUSE") {
+      return ctx.state;
+    }
+
+    if (result === "STOP") {
+      return ctx.state;
+    }
+  }
+
+  return ctx.state;
+}
+
+function runEffectDataStep(step, ctx, effectData = [], index = 0) {
+  switch (step?.type) {
+    case "GEAR_TRIGGER":
+      return ctx.state;
+
+    case "IF_STREET_CRED_7": {
+      const ownerKey = ctx.player || "player";
+      return (ctx.state?.[ownerKey]?.streetCred || 0) >= 7 ? ctx.state : "STOP";
+    }
+
+    case "CHOOSE_RIVAL_GEAR_MAX_COST_2": {
+      const targets = getEligibleRivalGearTargets(ctx.state, ctx.player || "player", 2);
+
+      if (targets.length === 0) return "STOP";
+
+      if (targets.length === 1) {
+        ctx.selectedRivalGearTarget = targets[0];
+        return ctx.state;
+      }
+
+      ctx.state.pendingGearChoice = {
+        type: "destroyRivalGearMaxCost2",
+        source: ctx.sourceGear?.name || "Dying Night",
+        player: ctx.player || "player",
+        eligible: targets,
+        selected: null,
+        remainingEffectData: effectData.slice(index + 1),
+      };
+      log(ctx.state, `     ${ctx.sourceGear?.name || "Dying Night"}: choose rival Gear costing 2 or less`);
+      return "PAUSE";
+    }
+
+    case "DEFEAT_SELECTED_RIVAL_GEAR": {
+      const target = ctx.selectedRivalGearTarget || ctx.rivalGearTarget;
+      if (!target) return "STOP";
+      defeatRivalGearTarget(ctx.state, target);
+      return ctx.state;
+    }
+
+    default:
+      return step?.action ? runAction(step.action, ctx) : ctx.state;
+  }
+}
+
 /* -------------------- TRIGGERS -------------------- */
 
 function resolveGearTrigger(effect, ctx) {
+  if (Array.isArray(effect.effectData)) {
+    return runEffectDataQueue(effect.effectData, ctx);
+  }
   return runAction(effect.action, ctx);
 }
 
