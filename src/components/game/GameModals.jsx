@@ -13,7 +13,7 @@ import {
   getAvailableLegendEddies,
   spendEddies,
 } from "@/lib/engine/EconomyEngine";
-import { resolveEffect } from "@/lib/effectResolver";
+import { resolveEffect, resolveSelectedGearEffect } from "@/lib/effectResolver";
 
 function payProgramCost(player, card) {
   const cost = card?.cost || 0;
@@ -63,6 +63,65 @@ function payProgramCost(player, card) {
           open={!!detailCard}
           onClose={() => setDetailCard(null)}
         />
+
+        {gs.pendingGearEffect && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="bg-card border border-red-500 rounded-xl p-6 max-w-2xl w-full mx-4">
+              <h2 className="font-orbitron text-xl text-red-400 mb-2">
+                {gs.pendingGearEffect.title || "CHOOSE GEAR"}
+              </h2>
+
+              <p className="text-xs text-muted-foreground mb-4">
+                {gs.pendingGearEffect.description || "Choose an eligible Gear target."}
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                {(gs.pendingGearEffect.targets || []).map((target) => (
+                  <button
+                    key={`${target.unitUid}-${target.gearUid || target.gearIndex}`}
+                    onClick={() => {
+                      const newGs = resolveSelectedGearEffect(gs, target);
+                      setGs(newGs);
+                      if (isMultiplayer) mpSave(newGs);
+                    }}
+                    className="rounded-lg border border-red-500/50 bg-black/40 p-3 text-left hover:border-red-300 hover:bg-red-500/10 transition-all"
+                  >
+                    {target.imageUrl && (
+                      <img
+                        src={target.imageUrl}
+                        alt={target.gearName || "Gear"}
+                        className="w-full aspect-[2/3] object-cover rounded mb-2"
+                      />
+                    )}
+                    <div className="font-orbitron text-sm text-red-300 truncate">
+                      {target.gearName || "Gear"}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      Attached to {target.unitName || "Unit"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Cost {target.cost ?? 0}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setGs((prev) => {
+                    const s = structuredClone(prev);
+                    delete s.pendingGearEffect;
+                    return s;
+                  });
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
 
         {gs.phase === PHASES.BLOCKER_DECISION &&
           gs.pendingAttackers?.length > 0 && (
