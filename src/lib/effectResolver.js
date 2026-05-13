@@ -275,6 +275,10 @@ function resolveGearTrigger(effect, ctx) {
     return runActionQueue(effect.effectData.map(step => step.action || step.type), ctx);
   }
 
+  if (Array.isArray(effect.action)) {
+    return runActionQueue(effect.action, ctx);
+  }
+
   return runAction(effect.action, ctx);
 }
 
