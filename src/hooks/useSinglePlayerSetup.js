@@ -1,10 +1,27 @@
 import { useEffect } from "react";
-import { buildCustomDeck } from "@/lib/cardPool";
+import { buildCustomDeck, LEGENDS_POOL, UNITS_POOL, PROGRAMS_POOL, GEAR_POOL } from "@/lib/cardPool";
 import {
   createInitialState,
   setupGame,
   PHASES,
 } from "@/lib/engine/gameEngine";
+
+const ALL_POOL_CARDS = [...LEGENDS_POOL, ...UNITS_POOL, ...PROGRAMS_POOL, ...GEAR_POOL];
+
+function getPoolCardName(cardId) {
+  return ALL_POOL_CARDS.find((card) => String(card.id) === String(cardId))?.name;
+}
+
+function withApiData(mainDeck, cardMap) {
+  return (mainDeck || []).map((entry) => {
+    const name = entry.name || getPoolCardName(entry.id);
+
+    return {
+      ...entry,
+      apiData: name ? cardMap[name.toLowerCase()] : undefined,
+    };
+  });
+}
 
 export function useSinglePlayerSetup({
   isMultiplayer,
@@ -59,19 +76,13 @@ export function useSinglePlayerSetup({
 
         const pd = buildCustomDeck(
           playerDeckData.legends,
-          playerDeckData.mainDeck.map((c) => ({
-            ...c,
-            apiData: cardMap[c.name?.toLowerCase()],
-          })),
+          withApiData(playerDeckData.mainDeck, cardMap),
           0
         );
 
         const od = buildCustomDeck(
           opponentDeckData.legends,
-          opponentDeckData.mainDeck.map((c) => ({
-            ...c,
-            apiData: cardMap[c.name?.toLowerCase()],
-          })),
+          withApiData(opponentDeckData.mainDeck, cardMap),
           1
         );
 
