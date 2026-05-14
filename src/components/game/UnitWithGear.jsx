@@ -39,6 +39,13 @@ function getBlockerSource(unit) {
 }
 
 function getTargetGlowStyles(tone) {
+  if (tone === "white") {
+    return {
+      filter: "drop-shadow(0 0 8px rgba(255,255,255,0.95)) drop-shadow(0 0 18px rgba(255,255,255,0.78)) drop-shadow(0 0 30px rgba(255,255,255,0.48))",
+      boxShadow: "0 0 0 3px rgba(255,255,255,0.95), 0 0 18px rgba(255,255,255,0.85), 0 0 36px rgba(255,255,255,0.55)",
+    };
+  }
+
   if (tone === "red") {
     return {
       filter: "drop-shadow(0 0 6px rgba(255,23,68,0.8)) drop-shadow(0 0 15px rgba(255,23,68,0.52))",
@@ -70,6 +77,7 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
 
   return (
     <div
+      onClick={onClick}
       style={{
         position: 'relative',
         width: CARD_W,
@@ -111,11 +119,10 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
             height: PEEK,
             overflow: 'hidden',
             borderRadius: '0 0 6px 6px',
-            border: '1px solid rgba(244,63,94,0.5)',
+            border: isTargetHighlighted ? '1px solid rgba(255,255,255,0.95)' : '1px solid rgba(244,63,94,0.5)',
             zIndex: i + 1,
           }}
         >
-          {/* Full card image, anchored to bottom so bottom slice shows */}
           <div style={{ position: 'absolute', bottom: 0, width: '100%', height: CARD_H }}>
             {g.imageUrl ? (
               <img
@@ -150,7 +157,6 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
         />
       </div>
 
-      {/* Blocker badge — bottom-right of unit card. Gear-granted blocker is silver. */}
       {hasBlocker && (
         <div
           title={blockerSource === "gear" ? "Blocker from gear" : "Blocker"}
@@ -171,15 +177,10 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
             opacity: unit.spent ? 0.65 : 1,
           }}
         >
-          <Shield
-  size={45}
-  strokeWidth={3}
-  color="#000000"
-/>
+          <Shield size={45} strokeWidth={3} color="#000000" />
         </div>
       )}
 
-      {/* Gear count badge — bottom-right of unit card, outside the card edge */}
       {gear.length > 0 && (
         <div
           style={{
@@ -191,12 +192,12 @@ export default function UnitWithGear({ unit, selected, attackTarget = false, tar
             width: 20,
             height: 20,
             borderRadius: '50%',
-            background: '#facc15',
+            background: isTargetHighlighted ? '#ffffff' : '#facc15',
             border: '2px solid hsl(225 30% 6%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.6)',
+            boxShadow: isTargetHighlighted ? '0 0 12px rgba(255,255,255,0.9)' : '0 1px 4px rgba(0,0,0,0.6)',
           }}
         >
           <span style={{ fontFamily: 'var(--font-orbitron)', fontWeight: 900, fontSize: 9, color: '#000', lineHeight: 1 }}>
