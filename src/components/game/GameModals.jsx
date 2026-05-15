@@ -7,7 +7,7 @@ import CardHoverPreview from "@/components/game/CardHoverPreview";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CARD_BACK } from "@/lib/cardPool";
-import { PHASES, resolvePendingEffect } from "@/lib/engine/gameEngine";
+import { PHASES, resolvePendingEffect, resolveGigSteal } from "@/lib/engine/gameEngine";
 import {
   getAvailableEddies,
   getAvailableLegendEddies,
@@ -24,6 +24,17 @@ function payProgramCost(player, card) {
 
   spendEddies(player, cost);
   return true;
+}
+
+function finishPendingGigSteal(state) {
+  const pending = state.pendingGearEffect;
+  if (pending?.source !== "gigAttack" || !pending?.attackerUid || !pending?.gigId) {
+    return state;
+  }
+
+  const cleared = structuredClone(state);
+  delete cleared.pendingGearEffect;
+  return resolveGigSteal(cleared, pending.attackerUid, pending.gigId);
 }
 
   export default function GameModals(props) {
@@ -45,6 +56,7 @@ function payProgramCost(player, card) {
 
       setGs,
       setactualIndex,
+      setSelectedAttacker,
 
       hoveredViktorCard,
       setHoveredViktorCard,
@@ -55,6 +67,7 @@ function payProgramCost(player, card) {
     } = props;
 
     const showPlayerLegendScan = gs.pendingLegendPeek?.owner === "player";
+    const showGearModal = !!gs.pendingGearEffect && gs.pendingGearEffect.choosingGear === true;
 
     return (
       <>
@@ -64,7 +77,7 @@ function payProgramCost(player, card) {
           onClose={() => setDetailCard(null)}
         />
 
-        {gs.pendingGearEffect && (
+        {showGearModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
             <div className="bg-card border border-red-500 rounded-xl p-6 max-w-2xl w-full mx-4">
               <h2 className="font-orbitron text-xl text-red-400 mb-2">
@@ -80,8 +93,10 @@ function payProgramCost(player, card) {
                   <button
                     key={`${target.unitUid}-${target.gearUid || target.gearIndex}`}
                     onClick={() => {
-                      const newGs = resolveSelectedGearEffect(gs, target);
+                      let newGs = resolveSelectedGearEffect(gs, target);
+                      newGs = finishPendingGigSteal(newGs);
                       setGs(newGs);
+                      setSelectedAttacker?.(null);
                       if (isMultiplayer) mpSave(newGs);
                     }}
                     className="rounded-lg border border-red-500/50 bg-black/40 p-3 text-left hover:border-red-300 hover:bg-red-500/10 transition-all"
@@ -110,14 +125,13 @@ function payProgramCost(player, card) {
                 variant="outline"
                 className="w-full"
                 onClick={() => {
-                  setGs((prev) => {
-                    const s = structuredClone(prev);
-                    delete s.pendingGearEffect;
-                    return s;
-                  });
+                  const newGs = finishPendingGigSteal(gs);
+                  setGs(newGs);
+                  setSelectedAttacker?.(null);
+                  if (isMultiplayer) mpSave(newGs);
                 }}
               >
-                Cancel
+                Cancel — Steal Gig
               </Button>
             </div>
           </div>
