@@ -261,6 +261,7 @@ export default function PlayerArea({
   phase,
   onLegendClick,
   pendingProgram,
+  pendingGearEffect,
   pendingBlock = null,
   onBlock,
   onFieldUnitClick,
@@ -282,6 +283,8 @@ export default function PlayerArea({
   const isFloorItTargeting = pendingProgram?.targetType === "spentUnitMax4";
   const isSpentUnitAttackTargeting = pendingProgram?.targetType === "spentUnitAttack";
   const isGearTargeting = !isOpponent && pendingProgram?.targetType === "friendlyGearUnit";
+  const isGearUnitChoiceTargeting = isOpponent && pendingGearEffect?.source === "gigAttack" && !pendingGearEffect?.choosingGear;
+  const gearUnitChoiceUids = new Set((pendingGearEffect?.targets || []).map(target => target.unitUid));
   const borderColor = isOpponent ? "#ff3366" : "#00ffff";
   const trashTitle = playerLabel || (isOpponent ? "Player 2" : "Player 1");
 
@@ -395,10 +398,16 @@ export default function PlayerArea({
                       selectedAttacker={selectedAttacker}
                       onFieldUnitClick={onFieldUnitClick}
                       phase={phase}
-                      isAttackTargetArea={true}
-                      targetingGlow={isFloorItTargeting || isSpentUnitAttackTargeting}
-                      targetingGlowTone="red"
-                      targetFilter={isSpentUnitAttackTargeting ? (unit) => unit.spent : (unit) => unit.spent && (unit.cost || 0) <= 4}
+                      isAttackTargetArea={!isGearUnitChoiceTargeting}
+                      targetingGlow={isGearUnitChoiceTargeting || isFloorItTargeting || isSpentUnitAttackTargeting}
+                      targetingGlowTone={isGearUnitChoiceTargeting ? "white" : "red"}
+                      targetFilter={
+                        isGearUnitChoiceTargeting
+                          ? (unit) => gearUnitChoiceUids.has(unit.uid)
+                          : isSpentUnitAttackTargeting
+                            ? (unit) => unit.spent
+                            : (unit) => unit.spent && (unit.cost || 0) <= 4
+                      }
                     />
                   </div>
 
