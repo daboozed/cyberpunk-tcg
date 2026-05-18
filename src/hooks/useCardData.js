@@ -7,16 +7,27 @@ export function useCardData() {
 
   useEffect(() => {
     fetchCards().then(cards => {
-      console.log("LOADED CARDS:", cards);
+      const uniqueCards = Array.from(
+        new Map(
+          cards.map(card => [
+           `${card.id || card.name}-${card.type}`,
+        card
+      ])
+    ).values()
+  );
 
-      setCards(cards);
+  setCards(uniqueCards);
 
-      const map = Object.fromEntries(
-        cards.map(c => [c.name.toLowerCase(), c])
-      );
-      setCardMap(map);
-    });
-  }, []);
+  const map = Object.fromEntries(
+    uniqueCards.map(c => [
+      `${c.name.toLowerCase()}-${c.type}`,
+      c
+    ])
+  );
+
+  setCardMap(map);
+});
+}, []);
 
   return { cards, cardMap };
 }
