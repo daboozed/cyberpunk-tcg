@@ -11,6 +11,9 @@ export { resolveGigBoost } from "../effectResolver";
 import { resolveLegendFlip } from "../legendFlipResolver";
 import { resolveEffect, applyEndOfTurnCleanup } from "../effectResolver";
 import { aiTurn as runAiTurn } from "./AiTurnEngine";
+  // =========================
+  // PHASES
+  // =========================
   export const PHASES = {
     SETUP:"setup",
     MULLIGAN:"mulligan",
@@ -21,6 +24,9 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
     GAME_OVER:"game_over"
   };
 
+  // =========================
+  // INITIAL STATE
+  // =========================
   export function createInitialState(playerDeck=[],opponentDeck=[]){
   return {
     turn:1,
@@ -54,7 +60,6 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
       legends,
       trash:[],
       gigDice:[],
-      rolledFixerSides:[],
       streetCred:0,
       fixerArea:[
         {id:`${prefix}-d4`,sides:4,label:"d4"},
@@ -71,62 +76,7 @@ import { aiTurn as runAiTurn } from "./AiTurnEngine";
     s.gameLog.push({msg,time:Date.now()});
   }
 
-function getUnitOwnerKey(state, unit) {
-  if (!state || !unit) return "player";
-  if ((state.player?.field || []).some(u => u.uid === unit.uid)) return "player";
-  if ((state.opponent?.field || []).some(u => u.uid === unit.uid)) return "opponent";
-  return "player";
-}
-
-function cardTextMatchesAttackSpentUnits(card) {
-  const effect = card?.effectData || card?.effect;
-  const text = `${card?.name || ""} ${card?.text || ""} ${card?.rules_text || ""} ${card?.description || ""} ${typeof effect === "string" ? effect : ""}`
-    .toLowerCase();
-
-  return (
-    text.includes("attack spent") ||
-    text.includes("can attack spent units") ||
-    text.includes("can attack spent unit") ||
-    effect?.action === "CAN_ATTACK_SPENT_UNITS_THIS_TURN"
-  );
-}
-
-export function unitCanAttackSpentUnitsThisTurn(unit) {
-  if (!unit) return false;
-  if (unit.canAttackSpentUnitsThisTurn) return true;
-  return (unit.gear || []).some(cardTextMatchesAttackSpentUnits);
-}
-
-  export function canUnitAttackThisTurn(unit){
-    if (!unit || unit.spent || unit.cantAttack) return false;
-    if (unit.justPlayed) return false;
-    return true;
-  }
-
-  export function canUnitAttackSpentUnitThisTurn(unit){
-    if (!unit || unit.spent || unit.cantAttack) return false;
-    if (unit.justPlayed && !unitCanAttackSpentUnitsThisTurn(unit)) return false;
-    return true;
-  }
-
-function normalizeCardEffect(card) {
-  const effect = card?.effectData || card?.effect;
-
-  if (effect && typeof effect === "object") return effect;
-
-  if (cardTextMatchesAttackSpentUnits(card)) {
-    return {
-      type: "GEAR_TRIGGER",
-      powerBonus: card?.powerBonus || 3,
-      trigger: "onPlay",
-      action: "CAN_ATTACK_SPENT_UNITS_THIS_TURN"
-    };
-  }
-
-  return effect || null;
-}
-
-function applyFirstPlayerLegendHandicap(s) {
+  function applyFirstPlayerLegendHandicap(s) {
   const p = s.firstPlayer === "player" ? s.player : s.opponent;
   const spentLegends = (p.legends || []).slice(0, 2);
 
@@ -152,274 +102,490 @@ function applyFirstPlayerLegendHandicap(s) {
   );
 }
 
+  // =========================
+  // SETUP
+  // =========================
   export function setupGame(state){
     const s=clone(state);
+
     const playerFirst=Math.random()>0.5;
     s.firstPlayer=playerFirst?"player":"opponent";
     s.currentPlayer=s.firstPlayer;
+
     log(s, playerFirst ? "Player 1 goes first" : "Player 2 goes first");
     log(s, playerFirst ? "Player 2 goes second" : "Player 1 goes second");
+
     for(let i=0;i<6;i++){
       if(s.player.deck.length) s.player.hand.push(s.player.deck.pop());
       if(s.opponent.deck.length) s.opponent.hand.push(s.opponent.deck.pop());
     }
+
     applyFirstPlayerLegendHandicap(s);
+
     s.phase=PHASES.MULLIGAN;
     return s;
   }
 
+  // =========================
+  // MULLIGAN
+  // =========================
   export function mulligan(state,doMulligan){
-  const s=clone(state);
-  if(doMulligan){
-    s.player.deck=shuffle([...s.player.deck,...s.player.hand]);
-    s.player.hand=[];
-    for(let i=0;i<6;i++){
-      if(s.player.deck.length) s.player.hand.push(s.player.deck.pop());
-    } 
-    log(s,"Player 1 mulligans");
-  }else{
-    log(s,"Player 1 keeps their hand");
-  }
-  const aiCheapUnits = s.opponent.hand.filter(c => c.type === 'unit' && (c.cost||0) <= 3);
-  if(aiCheapUnits.length < 2){
-    s.opponent.deck = shuffle([...s.opponent.deck,...s.opponent.hand]);
-    s.opponent.hand = [];
-    for(let i=0;i<6;i++){
-      if(s.opponent.deck.length) s.opponent.hand.push(s.opponent.deck.pop());
+    const s=clone(state);
+
+    if(doMulligan){
+      s.player.deck=shuffle([...s.player.deck,...s.player.hand]);
+      s.player.hand=[];
+      for(let i=0;i<6;i++){
+        if(s.player.deck.length) s.player.hand.push(s.player.deck.pop());
+      } 
+      log(s,"Player 1 mulligans");
+    }else{
+      log(s,"Player 1 keeps their hand");
     }
-    log(s,"Player 2 mulligans");
-  }else{
-    log(s,"Player 2 keeps their hand");
-  }
-  log(s,"*************** START! ***************");
-  s.phase=PHASES.READY;
-  return readyPhase(s);
+
+    // AI decides whether to mulligan
+    const aiCheapUnits = s.opponent.hand.filter(c => c.type === 'unit' && (c.cost||0) <= 3);
+    if(aiCheapUnits.length < 2){
+      s.opponent.deck = shuffle([...s.opponent.deck,...s.opponent.hand]);
+      s.opponent.hand = [];
+      for(let i=0;i<6;i++){
+        if(s.opponent.deck.length) s.opponent.hand.push(s.opponent.deck.pop());
+      }
+      log(s,"Player 2 mulligans");
+    }else{
+      log(s,"Player 2 keeps their hand");
+    }
+
+    log(s,"*************** START! ***************");
+
+    s.phase=PHASES.READY;
+    return readyPhase(s);
   }
 
+  // =========================
+  // READY
+  // =========================
   export function readyPhase(state){
     const s=clone(state);
     const isPlayer=s.currentPlayer==="player";
     const p=isPlayer?s.player:s.opponent;
     const num=isPlayer?1:2;
+     
     if ((p.gigDice?.length || 0) >= 6) {
-      s.phase = PHASES.GAME_OVER;
-      s.winner = isPlayer ? "player" : "opponent";
-      s.message = isPlayer ? "You start your turn with 6 Gigs — You win!" : "Player 2 starts turn with 6 Gigs — Player 2 wins!";
-      log(s, isPlayer ? "*** Player 1 WINS! ***" : "*** Player 2 WINS! ***");
-      return s;
-    }
+  s.phase = PHASES.GAME_OVER;
+  s.winner = isPlayer ? "player" : "opponent";
+  s.message = isPlayer
+    ? "You start your turn with 6 Gigs — You win!"
+    : "Player 2 starts turn with 6 Gigs — Player 2 wins!";
+    
+  log(s, isPlayer
+    ? "*** Player 1 WINS! ***"
+    : "*** Player 2 WINS! ***");
+
+  return s;
+}
+
     s.calledLegendThisTurn=false;
     s.soldThisTurn=false;
+
     log(s,`===== Turn ${s.turn} =====`);
     log(s,`Player ${num} — READY PHASE`);
+
     if(p.deck.length){
       p.hand.push(p.deck.pop());
       log(s,`     Player ${num} draws card`);
     }
+
     p.eddies.forEach(e=>e.spent=false);
     p.legends.forEach(l=>l.spent=false);
     p.field.forEach(u=>{u.spent=false;u.justPlayed=false;});
-    if (s.turn === 1 && s.currentPlayer === s.firstPlayer) applyFirstPlayerLegendHandicap(s);
+
+    if (s.turn === 1 && s.currentPlayer === s.firstPlayer) {
+  applyFirstPlayerLegendHandicap(s);
+}
+
+    console.log("RESET AI/PLAYER RESOURCES", {
+      player: s.currentPlayer,
+      eddies: p.eddies,
+      legends: p.legends
+});
+    
     log(s,"     Ready spent cards");
+
     if(!isPlayer){
-      return runAiTurn(s, { readyPhase, triggerGearEffects });
+      return runAiTurn(s, {
+        readyPhase,
+        triggerGearEffects
+      });
     }
+
     s.phase=PHASES.PICK_GIG;
     return s;
   }
 
+  // =========================
+  // PICK GIG
+  // =========================
   export function pickGigDie(state, index, value, side = "player") {
   const s = clone(state);
+
   const p = side === "player" ? s.player : s.opponent;
+
+  // 🔥 HARD GUARD: ensure fixerArea exists
   if (!Array.isArray(p.fixerArea)) return s;
+
   const die = p.fixerArea[index];
-  if (!die || typeof die.sides !== "number") return s;
+
+  // 🔥 HARD GUARD: invalid index or die
+  if (!die || typeof die.sides !== "number") {
+    console.warn("INVALID DIE PICK:", { index, die });
+    return s;
+  }
+
   const finalValue = value ?? Math.ceil(Math.random() * die.sides);
+
+  // 🔥 REMOVE SAFELY
   p.fixerArea = p.fixerArea.filter((_, i) => i !== index);
-  const newDie = { id: `gig_${Date.now()}_${Math.random().toString(36).slice(2)}`, sides: die.sides, label: die.label || `D${die.sides}`, value: finalValue };
-  if (!newDie.id || !newDie.sides) return s;
-  if (!Array.isArray(p.gigDice)) p.gigDice = [];
+
+  // 🔥 CREATE GUARANTEED VALID DIE
+  const newDie = {
+    id: `gig_${Date.now()}_${Math.random().toString(36).slice(2)}`, // 🔥 stronger than uid()
+    sides: die.sides,
+    label: die.label || `D${die.sides}`,
+    value: finalValue,
+  };
+
+  // 🔥 FINAL VALIDATION (THIS PREVENTS YOUR CRASH)
+  if (!newDie.id || !newDie.sides) {
+    console.error("BAD DIE CREATED:", newDie);
+    return s;
+  }
+
+  // 🔥 ENSURE ARRAY EXISTS
+  if (!Array.isArray(p.gigDice)) {
+    p.gigDice = [];
+  }
+
   p.gigDice.push(newDie);
-  if (!Array.isArray(p.rolledFixerSides)) p.rolledFixerSides = [];
-  if (!p.rolledFixerSides.includes(die.sides)) p.rolledFixerSides.push(die.sides);
   updateStreetCred(s);
+
   log(s, `     Rolled ${newDie.label} → ${finalValue}`);
+
   if (side === "player") {
     log(s, "Player 1 — PLAY PHASE");
     s.phase = PHASES.PLAY;
   }
+
   return s;
 }
 
+  // =========================
+  // SELL CARD (1 at a time)
+  // =========================
   export function sellCard(state, cardIndex){
   const s = clone(state);
   if(s.phase !== PHASES.PLAY) return s;
   if(s.soldThisTurn) return s;
+
   const p = s.player;
   const card = p.hand[cardIndex];
   if(!card) return s;
+
   p.hand.splice(cardIndex,1);
   p.eddies.push({id:uid(),spent:false});
+
   s.soldThisTurn=true;
+
   log(s,`     Sold ${card.name}`);
   return s;
 }
 
+// =========================
+// PLAY CARD
+// =========================
 export function playCard(state, cardIndex, targetUid){
   const s = clone(state);
   if(s.phase !== PHASES.PLAY) return s;
+
   const p = s.player;
   const card = p.hand[cardIndex];
   if(!card) return s;
-  const effect = card.effectKey || card.id;
-  const requiresTarget = effect === "p1" || effect === "p2" || effect === "p3" || effect === "p4" || effect === "p5" || effect === "p7";
-  if (requiresTarget) {
-    s.pendingEffect = { effect, cardIndex, player: "player" };
-    s.awaitingTarget = true;
-    return s;
+
+const effect = card.effectKey || card.id;
+console.log("PLAYCARD effect:", effect);
+
+const requiresTarget =
+  effect === "p1" ||
+  effect === "p2" ||
+  effect === "p3" ||
+  effect === "p4" ||
+  effect === "p5" ||
+  effect === "p7";
+
+if (requiresTarget) {
+  console.log("TARGET REQUIRED → opening modal");
+
+  s.pendingEffect = {
+    effect,
+    cardIndex,
+    player: "player"
+  };
+
+  s.awaitingTarget = true;
+  return s;
+}
+
+const cost = card.cost ?? 0;
+
+if (getAvailableEddies(p) + getAvailableLegendEddies(p) < cost) return s;
+
+// ================= PROGRAM =================
+if (card.type === "program") {
+  log(s, `     Played ${card.name}`);
+
+  spendEddies(p, cost);
+  const [playedCard] = p.hand.splice(cardIndex, 1);
+
+  if (playedCard.effectData) {
+    resolveEffect(playedCard.effectData, {
+      state: s,
+      player: "player",
+      targetUid
+    });
   }
-  const cost = card.cost ?? 0;
-  if(getAvailableEddies(p)+getAvailableLegendEddies(p) < cost) return s;
-  spendEddies(p,cost);
-  p.hand.splice(cardIndex,1);
-  if (card.type === "program") {
-    log(s, `     Played ${card.name}`);
-    if (card.effectData) resolveEffect(card.effectData, { state: s, player: "player", targetUid });
-    p.trash.push(card);
-    log(s, "     sent to trash");
-    return s;
-  }
+
+  p.trash.push(playedCard);
+  log(s, "     sent to trash");
+
+  return s;
+}
+
+spendEddies(p, cost);
+p.hand.splice(cardIndex, 1);
+
+  // Gear attach
   if(card.type === 'gear' && targetUid) {
     const target = p.field.find(u => u.uid === targetUid);
     if(target) {
-      const gear = {...card, uid: uid()};
       if(!target.gear) target.gear = [];
-      target.gear.push(gear);
-      resolveEffect(normalizeCardEffect(gear), { state: s, player: "player", unit: target, sourceUnit: target, targetUid: target.uid, sourceUid: target.uid });
+      target.gear.push({...card, uid: uid()});
       log(s,`     Equipped ${card.name} to ${target.name}`);
       return s;
     }
   }
-  p.field.push({ ...card, uid:uid(), spent:false, justPlayed:true });
+
+  p.field.push({
+    ...card,
+    uid:uid(),
+    spent:false,
+    justPlayed:true
+  });
+
+console.log("AI FIELD:", p.field);
+
   log(s,`     Played ${card.name}`);
   return s;
 }
 
+// =========================
+// RESOLVE PENDING EFFECT
+// =========================
 export function resolvePendingEffect(state, targetUid){
   const s = clone(state);
+
   if(!s.pendingEffect) return s;
+
   const { cardIndex, player } = s.pendingEffect;
   const p = s[player];
   const card = p.hand[cardIndex];
   if(!card) return s;
+
   const cost = card.cost ?? 0;
   if(getAvailableEddies(p)+getAvailableLegendEddies(p) < cost) return s;
+
   spendEddies(p,cost);
   const [removedCard] = p.hand.splice(cardIndex,1);
-  if (card.type === 'program' && card.effectData) resolveEffect(card.effectData, { state: s, player, targetUid });
+
+  // Resolve program effect using effectData
+if (card.type === 'program' && card.effectData) {
+  resolveEffect(card.effectData, {
+    state: s,
+    player,
+    targetUid
+  });
+}
+
   p.trash.push(removedCard);
   s.pendingEffect = null;
   s.awaitingTarget = false;
+
   return s;
 }
 
+  // =========================
+  // CALL LEGEND
+  // =========================
   export function callLegend(state, legendIndex){
   const s = clone(state);
   if (s.phase !== PHASES.PLAY) return s;
   if (s.calledLegendThisTurn) return s;
+
   const p = s.player;
   const lg = p.legends?.[legendIndex];
+
   if (!lg || lg.faceUp) return s;
+
   if (getAvailableEddies(p) + getAvailableLegendEddies(p) < 2) return s;
+
   spendEddies(p, 2);
+
   lg.faceUp = true;
   s.calledLegendThisTurn = true;
+
   const newState = resolveLegendFlip(s, lg);
+
   newState.soldThisTurn = false;
+
   log(newState, `     Called Legend ${lg.name || ""}`);
+
   return newState;
 }
 
+  // =========================
+  // ATTACK PHASE
+  // =========================
   export function startAttackPhase(state){
     const s = clone(state);
     if(s.phase !== PHASES.PLAY) return s;
+
     log(s,"Player 1 — ATTACK PHASE");
-    s.phase=PHASES.ATTACK;
+    s.phase = PHASES.ATTACK;
     return s;
   }
 
+  // =========================
+  // END TURN
+  // =========================
   export function endTurn(state){
   const s = applyEndOfTurnCleanup(clone(state));
-  s.currentPlayer = s.currentPlayer === "player" ? "opponent" : "player";
-  if (s.currentPlayer === "player") s.turn++;
+
+  s.currentPlayer =
+    s.currentPlayer === "player"
+      ? "opponent"
+      : "player";
+
+  // New full turn begins when it returns to Player 1
+  if (s.currentPlayer === "player") {
+    s.turn++;
+  }
+
   return readyPhase(s);
 }
 
+  // =========================
+  // REQUIRED EXPORTS
+  // =========================
 export function resolveAfterpartyAdjustment(state, gigIndex, adjustment) {
   const s = clone(state);
+
   const gig = s.opponent.gigDice[gigIndex];
   if (!gig) return s;
-  gig.value = Math.max(1, Math.min(gig.sides, gig.value + adjustment));
+
+  gig.value = Math.max(
+    1,
+    Math.min(gig.sides, gig.value + adjustment)
+  );
+
   log(s, `     Rival Gig adjusted to ${gig.value}`);
+
   return s;
 }
 
   export function resolveGigSteal(state, attackerUid, gigId){
   const s = clone(state);
+
   if(s.phase !== PHASES.ATTACK) return s;
+
   const attacker = s.player.field.find(u => u.uid === attackerUid);
-  if(!canUnitAttackThisTurn(attacker)) return s;
+  if(!attacker || attacker.spent || attacker.justPlayed || attacker.cantAttack) return s;
+
   const idx = s.opponent.gigDice.findIndex(d => d.id === gigId);
   if(idx === -1) return s;
+
+  // 🔥 STEAL
   const [stolen] = s.opponent.gigDice.splice(idx, 1);
   s.player.gigDice.push({ ...stolen, id: uid() });
+
   attacker.spent = true;
-  log(s, `     ${attacker.name} steals Gig (${stolen.label} — value: ${stolen.value})`);
+
+// Resolve gear effects when this unit attacks
+
+log(s, `     ${attacker.name} steals Gig (${stolen.label} — value: ${stolen.value})`);
+
+  // 🏆 WIN CHECK
+
   return s;
 }
 
   export function attackRival(state, attackerUid){
     const s = clone(state);
     if(s.phase !== PHASES.ATTACK) return s;
+
     const attacker = s.player.field.find(u => u.uid === attackerUid);
-    if(!canUnitAttackThisTurn(attacker)) return s;
+    if(!attacker || attacker.spent || attacker.justPlayed || attacker.cantAttack) return s;
+
     attacker.spent = true;
+
+// Resolve all equipped gear effects that trigger when this unit attacks
     triggerGearEffects(s, attacker, "onAttack");
+
     if(s.opponent.gigDice.length === 0){
       log(s, `     ${attacker.name} attacks rival directly but rival has no Gigs!`);
       return s;
     }
-    const atkPow = (attacker.power || 0) + (attacker.powerBonus || 0) + ((attacker.gear || []).reduce((sum, g) => sum + (g.powerBonus || 0), 0));
+
+    const atkPow = (attacker.power || 0) + (attacker.powerBonus || 0) +
+      ((attacker.gear || []).reduce((sum, g) => sum + (g.powerBonus || 0), 0));
     const gigsToSteal = 1 + Math.floor(atkPow / 10);
+
+    // Auto-steal if opponent only has 1 gig
     if(s.opponent.gigDice.length === 1){
       const [stolen] = s.opponent.gigDice.splice(0, 1);
       s.player.gigDice.push({ ...stolen, id: uid() });
       log(s, `     ${attacker.name} attacks rival directly! Steals Gig (${stolen.label} — value: ${stolen.value})`);
+      
       return s;
     }
+
     log(s, `     ${attacker.name} attacks rival directly! Choose a Gig to steal.`);
     s.pendingGigSteal = { attackerUid, gigsToSteal, stolen: 0 };
+
     return s;
   }
 
   export function attackUnit(state, attackerUid, defenderUid){
     const s = clone(state);
     if(s.phase !== PHASES.ATTACK) return s;
+
     const attacker = s.player.field.find(u => u.uid === attackerUid);
     const defender = s.opponent.field.find(u => u.uid === defenderUid);
-    if(!canUnitAttackSpentUnitThisTurn(attacker) || !defender || !defender.spent) return s;
+    if(!attacker || attacker.spent || attacker.justPlayed || !defender) return s;
+
     attacker.spent = true;
-    triggerGearEffects(s, attacker, "onAttack", { defender, defenderUid });
-    const atkPow = (attacker.power || 0) + (attacker.powerBonus || 0) + ((attacker.gear || []).reduce((sum, g) => sum + (g.powerBonus || 0), 0));
-    const defPow = (defender.power || 0) + (defender.powerBonus || 0) + ((defender.gear || []).reduce((sum, g) => sum + (g.powerBonus || 0), 0));
+
+// Trigger attack gear effects FIRST
+triggerGearEffects(s, attacker, "onAttack");
+
+const atkPow = (attacker.power || 0) + (attacker.powerBonus || 0) +
+  ((attacker.gear || []).reduce((sum, g) => sum + (g.powerBonus || 0), 0));
+
+const defPow = (defender.power || 0) + (defender.powerBonus || 0) +
+  ((defender.gear || []).reduce((sum, g) => sum + (g.powerBonus || 0), 0));
+
     if (atkPow > defPow) {
       const idx = s.opponent.field.findIndex(u => u.uid === defenderUid);
-      if (idx >= 0) {
-        const [d] = s.opponent.field.splice(idx, 1);
-        s.opponent.trash.push(d);
-      }
+      if(idx >= 0){ const [d] = s.opponent.field.splice(idx, 1); s.opponent.trash.push(d); }
       log(s, `     ${attacker.name} defeats ${defender.name}`);
-      triggerGearEffects(s, attacker, "onAttackWinVsUnit", { defender, defenderUid });
     } else if (atkPow < defPow) {
       const idx = s.player.field.findIndex(u => u.uid === attackerUid);
       if(idx >= 0){ const [d] = s.player.field.splice(idx, 1); s.player.trash.push(d); }
@@ -431,50 +597,80 @@ export function resolveAfterpartyAdjustment(state, gigIndex, adjustment) {
       if(defenderIdx >= 0){ const [deadDefender] = s.opponent.field.splice(defenderIdx, 1); s.opponent.trash.push(deadDefender); }
       log(s, `     ${attacker.name} and ${defender.name} are both defeated`);
     }
+
     return s;
   }
 
 export function resolveBlockerDecision(state, blockerUid = null) {
   const s = clone(state);
+
   if (!s.pendingBlock) return s;
-  const { attacker, targetType, targetUid, source } = s.pendingBlock;
+
+  const {
+    attacker,
+    targetType,
+    targetUid,
+    source
+  } = s.pendingBlock;
+
   const finishBlockerDecision = () => {
     s.pendingBlock = null;
+
     if (source === "aiAttack") {
       s.currentPlayer = "player";
       s.turn++;
       s.message = "Opponent finished their turn.";
       return readyPhase(s);
     }
+
     return s;
   };
-  const blocker = blockerUid ? s.player.field.find(u => u.uid === blockerUid) : null;
+
+  const blocker = blockerUid
+    ? s.player.field.find(u => u.uid === blockerUid)
+    : null;
+
+  // NO BLOCK CHOSEN
   if (!blocker) {
-    if (targetType === "gig" && s.player.gigDice.length > 0) {
-      const best = s.player.gigDice.reduce((best, g, i) => g.value > s.player.gigDice[best].value ? i : best, 0);
-      const [stolen] = s.player.gigDice.splice(best, 1);
-      s.opponent.gigDice.push({ ...stolen, id: uid() });
-      log(s, `${attacker.name} steals Gig ${stolen.value}`);
+    if (targetType === "gig") {
+      if (s.player.gigDice.length > 0) {
+        const best = s.player.gigDice.reduce((best, g, i) =>
+          g.value > s.player.gigDice[best].value ? i : best, 0
+        );
+
+        const [stolen] = s.player.gigDice.splice(best, 1);
+        s.opponent.gigDice.push({ ...stolen, id: uid() });
+
+        log(s, `${attacker.name} steals Gig ${stolen.value}`);
+      }
     }
+
     if (targetType === "unit") {
       const idx = s.player.field.findIndex(u => u.uid === targetUid);
       if (idx >= 0) {
         const [dead] = s.player.field.splice(idx, 1);
         s.player.trash.push(dead);
+
         log(s, `${attacker.name} defeats ${dead.name}`);
       }
     }
+
     return finishBlockerDecision();
   }
+
+  // BLOCK COMBAT
   blocker.spent = true;
+
   const atkPow = calcPower(attacker);
   const defPow = calcPower(blocker);
+
   if (atkPow > defPow) {
     const idx = s.player.field.findIndex(u => u.uid === blocker.uid);
     if (idx >= 0) {
       const [dead] = s.player.field.splice(idx, 1);
       s.player.trash.push(dead);
     }
+
     log(s, `${blocker.name} blocks but is defeated by ${attacker.name}`);
   } else if (atkPow < defPow) {
     const idx = s.opponent.field.findIndex(u => u.uid === attacker.uid);
@@ -482,6 +678,7 @@ export function resolveBlockerDecision(state, blockerUid = null) {
       const [dead] = s.opponent.field.splice(idx, 1);
       s.opponent.trash.push(dead);
     }
+
     log(s, `${blocker.name} blocks and defeats ${attacker.name}`);
   } else {
     const blockerIdx = s.player.field.findIndex(u => u.uid === blocker.uid);
@@ -489,70 +686,137 @@ export function resolveBlockerDecision(state, blockerUid = null) {
       const [deadBlocker] = s.player.field.splice(blockerIdx, 1);
       s.player.trash.push(deadBlocker);
     }
+
     const attackerIdx = s.opponent.field.findIndex(u => u.uid === attacker.uid);
     if (attackerIdx >= 0) {
       const [deadAttacker] = s.opponent.field.splice(attackerIdx, 1);
       s.opponent.trash.push(deadAttacker);
     }
+
     log(s, `${blocker.name} blocks ${attacker.name}; both are defeated`);
   }
+
   return finishBlockerDecision();
 }
 
   export function playLegendAsSolo(state, legendIndex){
     const s = clone(state);
     if(s.phase !== PHASES.PLAY) return s;
+    
     const p = s.player;
     const legend = p.legends?.[legendIndex];
     if(!legend || !legend.faceUp) return s;
+    
     if(getAvailableEddies(p)+getAvailableLegendEddies(p) < (legend.cost || 0)) return s;
+    
     spendEddies(p, legend.cost || 0);
-    p.field.push({ ...legend, uid:uid(), spent:false, isLegend:true });
+    
+    p.field.push({
+      ...legend,
+      uid:uid(),
+      spent:false,
+      isLegend:true
+    });
+    
     legend.goSoloActive = true;
     s.soldThisTurn = false;
+    
     log(s, `     Called Legend ${legend.name} (GO SOLO)`);
     return s;
   }
 
-function getGearEffect(gear) {
-  const rawEffect = gear?.effectData || gear?.effect || gear || null;
-  if (gear?.name === "Satori" || String(rawEffect || "").toLowerCase().includes("draw a card")) {
-    return { type: "GEAR_TRIGGER", powerBonus: gear?.powerBonus || 1, trigger: "onAttackWinVsUnit", action: "DRAW", amount: 1 };
-  }
-  return rawEffect;
-}
-
-function drawCardsForPlayer(state, playerKey, amount = 1) {
-  const player = state[playerKey];
-  if (!player) return 0;
-  let drawn = 0;
-  for (let i = 0; i < amount; i++) {
-    if (!player.deck?.length) break;
-    player.hand.push(player.deck.pop());
-    drawn++;
-  }
-  return drawn;
-}
-
-function triggerGearEffects(state, unit, trigger, context = {}) {
+  // =========================
+  // HELPERS
+  // =========================
+function triggerGearEffects(state, unit, trigger) {
   const gears = unit.gear || [];
-  const owner = getUnitOwnerKey(state, unit);
+
+  const ownerKey = state.player.field.some(u => u.uid === unit.uid)
+    ? "player"
+    : "opponent";
+
+  const rivalKey = ownerKey === "player" ? "opponent" : "player";
+  const owner = state[ownerKey];
+  const rival = state[rivalKey];
+
   for (const gear of gears) {
-    const effect = normalizeCardEffect(gear);
-    if (effect?.type === "GEAR_TRIGGER" && effect?.trigger === trigger) {
-      resolveEffect(effect, {
-        state,
-        player: owner,
-        unit,
-        sourceUnit: unit,
-        sourceUid: unit.uid,
-        sourceGear: gear,
-        ...context,
-      });
-    }
-    if (gear.name?.toLowerCase().includes("kiroshi") && trigger === "onAttack") {
-      state.pendingLegendPeek = { owner };
-      log(state, "     Kiroshi Optics activates — peek at a friendly face-down Legend");
-    }
+    const effect = gear.effect || gear.effectData;
+
+    if (!effect || effect.type !== "GEAR_TRIGGER") continue;
+    if (effect.trigger !== trigger) continue;
+    if (!conditionMet(effect.condition, { state, ownerKey, rivalKey, unit, gear })) continue;
+
+    runGearAction(effect.action, {
+      state,
+      ownerKey,
+      rivalKey,
+      owner,
+      rival,
+      unit,
+      gear,
+      effect,
+    });
   }
+}
+
+function conditionMet(condition, ctx) {
+  if (!condition) return true;
+
+  switch (condition) {
+    case "stars>=7":
+    case "streetCred>=7":
+      return (ctx.owner.streetCred || 0) >= 7;
+
+    default:
+      console.warn("Unhandled gear condition:", condition);
+      return false;
+  }
+}
+
+function runGearAction(action, ctx) {
+  switch (action) {
+    case "PEEK_FRIENDLY_FACEDOWN_LEGEND":
+      return gearPeekFriendlyFacedownLegend(ctx);
+
+    case "DESTROY_RIVAL_GEAR_MAX_2":
+      return destroyRivalGearMaxCost(ctx, 2);
+
+    default:
+      console.warn("Unhandled gear action:", action);
+      return ctx.state;
+  }
+}
+
+function gearPeekFriendlyFacedownLegend(ctx) {
+  ctx.state.pendingLegendPeek = { owner: ctx.ownerKey };
+
+  log(
+    ctx.state,
+    "     Kiroshi Optics activates — peek at a friendly face-down Legend"
+  );
+
+  return ctx.state;
+}
+
+function destroyRivalGearMaxCost(ctx, maxCost) {
+  const rivalUnitWithGear = ctx.rival.field.find(u =>
+    (u.gear || []).some(g => (g.cost || 0) <= maxCost)
+  );
+
+  if (!rivalUnitWithGear) {
+    log(ctx.state, `     ${ctx.gear.name} activates, but rival has no Gear cost ${maxCost} or less`);
+    return ctx.state;
+  }
+
+  const gearIndex = rivalUnitWithGear.gear.findIndex(g => (g.cost || 0) <= maxCost);
+  const [destroyedGear] = rivalUnitWithGear.gear.splice(gearIndex, 1);
+
+  ctx.rival.trash.push(destroyedGear);
+
+  log(
+    ctx.state,
+    `     ${ctx.gear.name} destroys ${destroyedGear.name} from ${rivalUnitWithGear.name}`
+  );
+
+  return ctx.state;
 }

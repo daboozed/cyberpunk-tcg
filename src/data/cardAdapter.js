@@ -6,17 +6,7 @@ const GEAR_EFFECTS = Object.freeze({
   "mandibular upgrade": { type: "GEAR_PASSIVE", keywords: ["blocker"] },
   "gorilla arms": { type: "GEAR_TRIGGER", powerBonus: 4, trigger: "firstGigStealEachTurn", action: "STEAL_MATCHING_GIG" },
   "sandevistan": { type: "GEAR_TRIGGER", powerBonus: 3, trigger: "onPlay", action: "CAN_ATTACK_SPENT_UNITS_THIS_TURN" },
-  "dying night": {
-    type: "GEAR_TRIGGER",
-    powerBonus: 2,
-    trigger: "onAttack",
-    effectData: [
-      { type: "GEAR_TRIGGER", trigger: "onAttack" },
-      { type: "IF_STREET_CRED_7" },
-      { type: "CHOOSE_RIVAL_GEAR_MAX_COST_2" },
-      { type: "DEFEAT_SELECTED_RIVAL_GEAR" }
-    ]
-  }
+  "dying night": { type: "GEAR_TRIGGER", powerBonus: 2, trigger: "onAttack", condition: "stars>=7", action: "DESTROY_RIVAL_GEAR_MAX_2" }
 });
 const PROGRAM_EFFECTS = Object.freeze({
   "reboot optics": { type: "PROGRAM_MULTI", action: ["BUFF_FRIENDLY_UNIT_4_THIS_TURN", "DEFEAT_TARGET_END_TURN"] },
