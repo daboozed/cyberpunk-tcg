@@ -66,38 +66,64 @@ export default function DeckBuilder() {
 
   useEffect(() => {
   fetch("https://api.netdeck.gg/api/cards/cyberpunk?limit=60&offset=0")
-    .then(res => res.json())
-    .then(data => {
-      console.log("FIRST CARD:", data.items?.[0]);
-      setCards(
-  (data.items || []).map(card => {
-    const rawType = (card.card_type || "").toLowerCase();
-const rawColor = (card.color || "").toLowerCase();
+  .then(res => res.json())
+  .then(data => {
 
-    return {
-      id: String(card.id),
-      name: card.name || "Unknown",
-      imageUrl: card.image_url || "",
+console.table(
+  (data.items || [])
+    .filter(card => (card.name || "").toLowerCase().includes("goro"))
+    .map(card => ({
+      id: card.id,
+      external_id: card.external_id,
+      name: card.name,
+      subname: card.subname,
+      display_name: card.display_name,
+      slug: card.slug,
+      card_type: card.card_type,
+      image_url: card.image_url,
+      source_image_url: card.source_image_url,
+    }))
+);
 
-      // ✅ MAP TYPE
-      type:
+    const mappedCards = (data.items || []).map((card) => {
+      const rawType = (card.card_type || "").toLowerCase();
+      const rawColor = (card.color || "").toLowerCase();
+
+      const type =
         rawType.includes("legend") ? "legend" :
         rawType.includes("program") ? "program" :
         rawType.includes("gear") ? "gear" :
-        "unit",
+        "unit";
 
-      // ✅ MAP COLOR
-      color:
-  rawColor.includes("yellow") ? "yellow" :
-  rawColor.includes("green") ? "green" :
-  rawColor.includes("blue") ? "blue" :
-  rawColor.includes("red") ? "red" :
-  null,
-    };
-  })
+      const imageUrl = card.source_image_url || card.image_url || "";
+      const displayName = card.display_name || card.name || "Unknown";
+      const subname = card.subname || "";
+      const slug = card.slug || card.external_id || card.id || `${displayName}-${subname}-${type}`;
+
+return {
+  id: String(card.id),
+  deckKey: `${slug}-${type}`.toLowerCase().trim().replace(/\s+/g, "-"),
+  name: card.name || "Unknown",
+  displayName,
+  subname,
+  imageUrl,
+  type,
+  color:
+    rawColor.includes("yellow") ? "yellow" :
+    rawColor.includes("green") ? "green" :
+    rawColor.includes("blue") ? "blue" :
+    rawColor.includes("red") ? "red" :
+    null,
+};
+    });
+
+    const uniqueCards = Array.from(
+  new Map(mappedCards.map(card => [card.deckKey, card])).values()
 );
-      setLoading(false);
-    })
+
+    setCards(uniqueCards);
+    setLoading(false);
+  })
     .catch(err => {
       console.error(err);
       setLoading(false);
@@ -290,13 +316,13 @@ const rawColor = (card.color || "").toLowerCase();
                 const Icon = style.icon;
                 const cardColor = getCardColor(card);
                 const isLegend = card.type === 'legend';
-                const selected = isLegend ? isLegendSelected(card.id) : getMainCount(card.id);
-                const count = isLegend ? (isLegendSelected(card.id) ? 1 : 0) : getMainCount(card.id);
-                const maxed = isLegend ? (isLegendSelected(card.id) || legendCount >= REQUIRED_LEGENDS) : count >= MAX_COPIES;
+                const selected = isLegend ? isLegendSelected(card.deckKey) : getMainCount(card.deckKey);
+                const count = isLegend ? (isLegendSelected(card.deckKey) ? 1 : 0) : getMainCount(card.deckKey);
+                const maxed = isLegend ? (isLegendSelected(card.deckKey) || legendCount >= REQUIRED_LEGENDS) : count >= MAX_COPIES;
 
                 return (
                   <div
-                    key={card.id}
+                    key={card.deckKey}
                     className="relative group flex flex-col"
                     onMouseEnter={() => setHoveredCard(card)}
                     onMouseLeave={() => setHoveredCard(null)}
@@ -304,7 +330,7 @@ const rawColor = (card.color || "").toLowerCase();
                   >
                     {/* Card visual */}
                     <div
-                      onClick={() => isLegend ? toggleLegend(card.id) : addCard(card.id)}
+                      onClick={() => isLegend ? toggleLegend(card.deckKey) : addCard(card.deckKey)}
                       className={cn(
                         "relative rounded-lg border-2 cursor-pointer transition-all duration-150 overflow-hidden aspect-[2/3] bg-black/40 bg-red-500",
                         cardColor.border,
@@ -326,7 +352,10 @@ const rawColor = (card.color || "").toLowerCase();
                       </div>
                       {/* Name */}
                       <div className="absolute bottom-0 inset-x-0 p-1">
-                        <p className="font-rajdhani font-bold text-[10px] leading-tight text-white text-center drop-shadow line-clamp-2">{card.name}</p>
+                        <p className="font-rajdhani font-bold text-[10px] leading-tight text-white text-center drop-shadow line-clamp-2">
+                          {card.name}
+                          {card.subname ? ` — ${card.subname}` : ""}
+                            </p>
                       </div>
                       {/* Count badge */}
                       {count > 0 && (
@@ -339,10 +368,10 @@ const rawColor = (card.color || "").toLowerCase();
                     {/* Add/Remove buttons */}
                     {!isLegend && (
                       <div className="flex gap-1 mt-1">
-                        <button onClick={() => removeCard(card.id)} className="flex-1 flex items-center justify-center h-5 rounded bg-muted/50 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors">
+                        <button onClick={() => removeCard(card.deckKey)} className="flex-1 flex items-center justify-center h-5 rounded bg-muted/50 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors">
                           <Minus className="w-3 h-3" />
                         </button>
-                        <button onClick={() => addCard(card.id)} disabled={maxed || mainDeckCount >= MAIN_DECK_SIZE} className="flex-1 flex items-center justify-center h-5 rounded bg-muted/50 hover:bg-primary/20 text-muted-foreground hover:text-primary disabled:opacity-30 transition-colors">
+                        <button onClick={() => addCard(card.deckKey)} disabled={maxed || mainDeckCount >= MAIN_DECK_SIZE} className="flex-1 flex items-center justify-center h-5 rounded bg-muted/50 hover:bg-primary/20 text-muted-foreground hover:text-primary disabled:opacity-30 transition-colors">
                           <Plus className="w-3 h-3" />
                         </button>
                       </div>
@@ -382,7 +411,7 @@ const rawColor = (card.color || "").toLowerCase();
               <p className="text-[11px] text-amber-400 font-mono uppercase tracking-wider mb-1">Legends</p>
               {legends.length === 0 && <p className="text-[11px] text-muted-foreground/50 font-mono">None selected</p>}
               {legends.map(id => {
-                const card = cards.find(c => c.id === id);
+                const card = cards.find(c => c.deckKey === id);
                 if (!card) return null;
                 return (
                   <div key={id} className="flex items-center gap-1.5 py-0.5 group/item">
@@ -401,7 +430,7 @@ const rawColor = (card.color || "").toLowerCase();
               <p className="text-[11px] text-cyan-400 font-mono uppercase tracking-wider mb-1">Main Deck</p>
               {mainDeck.length === 0 && <p className="text-[11px] text-muted-foreground/50 font-mono">No cards added</p>}
               {mainDeck.map(({ id, count }) => {
-                const card = cards.find(c => c.id === id);
+                const card = cards.find(c => c.deckKey === id);
                 if (!card) return null;
                 const style = TYPE_STYLES[card.type];
                 return (
