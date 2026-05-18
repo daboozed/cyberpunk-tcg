@@ -8,8 +8,6 @@ import LoadDeckModal from "@/components/game/LoadDeckModal";
 import SaveDeckModal from "@/components/game/SaveDeckModal";
 import { LEGENDS_POOL, UNITS_POOL, PROGRAMS_POOL, GEAR_POOL } from "@/lib/cardPool";
 
-const ALL_CARDS_FLAT = [...LEGENDS_POOL, ...UNITS_POOL, ...PROGRAMS_POOL, ...GEAR_POOL];
-
 const TYPE_STYLES = {
   legend:  { icon: Crown,  accent: 'text-amber-400',  label: 'Legends' },
   unit:    { icon: Swords, accent: 'text-cyan-400',   label: 'Units' },
@@ -32,20 +30,6 @@ function getCardColor(card) {
 const MAX_COPIES = 3;
 const REQUIRED_LEGENDS = 3;
 const MAIN_DECK_SIZE = 27;
-
-function normalizeName(name = "") {
-  return name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function loadSavedDeck() {
-  try { return JSON.parse(localStorage.getItem('cpTCG_deck') || 'null'); } catch { return null; }
-}
 
 function saveDeckToStorage(deck) {
   localStorage.setItem('cpTCG_deck', JSON.stringify(deck));
@@ -75,53 +59,98 @@ export default function DeckBuilder() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-  fetch("https://api.netdeck.gg/api/cards/cyberpunk?limit=60&offset=0")
-    .then(res => res.json())
-    .then(data => {
-      console.log("FIRST CARD:", data.items?.[0]);
-      const apiCardsByName = Object.fromEntries(
-        (data.items || []).map(card => [normalizeName(card.name), card])
-      );
+  let cancelled = false;
 
-      setCards(
-        ALL_CARDS_FLAT.map(localCard => {
-          const apiCard = apiCardsByName[normalizeName(localCard.name)] || {};
-          const rawType = (apiCard.card_type || localCard.type || "").toLowerCase();
-          const rawColor = (apiCard.color || localCard.color || "").toLowerCase();
+  async function loadCards() {
+    try {
+      setLoading(true);
 
-          return {
-            ...localCard,
-            id: localCard.id,
-            name: apiCard.name || localCard.name || "Unknown",
-            imageUrl: apiCard.image_url || localCard.imageUrl || "",
+      const res = await fetch("https://api.netdeck.gg/api/cards/cyberpunk?limit=100&offset=0");
 
-            // ✅ MAP TYPE
-            type:
-              rawType.includes("legend") ? "legend" :
-              rawType.includes("program") ? "program" :
-              rawType.includes("gear") ? "gear" :
-              "unit",
+      if (!res.ok) {
+        throw new Error(`Card API failed: ${res.status}`);
+      }
 
-            // ✅ MAP COLOR
-            color:
-              rawColor.includes("yellow") ? "yellow" :
-              rawColor.includes("green") ? "green" :
-              rawColor.includes("blue") ? "blue" :
-              rawColor.includes("red") ? "red" :
-              localCard.color || null,
-          };
-        })
-      );
-      setLoading(false);
-    })
-    .catch(err => {
-      console.error(err);
-      setCards(ALL_CARDS_FLAT);
-      setLoading(false);
-    });
+      const data = await res.json();
+      const apiItems = Array.isArray(data.items) ? data.items : [];
+
+      const mappedCards = apiItems.map((card, index) => {
+        const rawType = String(card.card_type || "").toLowerCase();
+        const rawColor = String(card.color || "").toLowerCase();
+
+        const type =
+          rawType.includes("legend") ? "legend" :
+          rawType.includes("program") ? "program" :
+          rawType.includes("gear") ? "gear" :
+          "unit";
+
+        const imageUrl = card.image_url || card.source_image_url || "";
+        const displayName = card.display_name || card.name || "Unknown";
+        const subname = card.subname || "";
+
+        const sourceId =
+          card.external_id ||
+          card.id ||
+          `${displayName}-${subname}-${type}-${index}`;
+
+        return {
+          id: String(sourceId),
+          deckKey: String(sourceId),
+          name: card.name || "Unknown",
+          displayName,
+          subname,
+          imageUrl,
+          type,
+          color:
+            rawColor.includes("yellow") ? "yellow" :
+            rawColor.includes("green") ? "green" :
+            rawColor.includes("blue") ? "blue" :
+            rawColor.includes("red") ? "red" :
+            null,
+        };
+      });
+      
+      if (!cancelled) {
+        setCards(mappedCards);
+      }
+    } catch (err) {
+      console.error("[DeckBuilder] Failed to load cards:", err);
+
+      if (!cancelled) {
+        setCards([]);
+      }
+    } finally {
+      if (!cancelled) {
+        setLoading(false);
+      }
+    }
+  }
+
+  loadCards();
+
+  return () => {
+    cancelled = true;
+  };
 }, []);
 
-  const filteredCards = cards;
+  const filteredCards = useMemo(() => {
+  const q = search.toLowerCase().trim();
+
+  return cards.filter(card => {
+    const matchesSearch =
+      !q ||
+      card.name.toLowerCase().includes(q) ||
+      card.displayName.toLowerCase().includes(q) ||
+      card.subname.toLowerCase().includes(q);
+
+    const matchesFilter =
+      filterType === "all" ||
+      card.type === filterType ||
+      card.color === filterType;
+
+    return matchesSearch && matchesFilter;
+  });
+}, [cards, search, filterType]);
 
   const legendCount = legends.length;
   const mainDeckCount = mainDeck.reduce((s, e) => s + e.count, 0);
@@ -213,9 +242,6 @@ export default function DeckBuilder() {
     setMainDeck([]);
   };
 
-  // All non-legend cards as a flat lookup
-  const allNonLegend = cards.filter(c => c.type !== "legend");
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -296,24 +322,33 @@ export default function DeckBuilder() {
           {/* Card grid */}
           <div className="flex-1 overflow-y-auto px-3 pb-3">
             <div
-              className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2"
+              className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8 gap-2"
               onMouseMove={e => setMousePos({ x: e.clientX, y: e.clientY })}
             >
-              {cards.length === 0 && (
-                <div className="col-span-full py-8 text-center text-muted-foreground/50 font-mono text-xs">No cards found</div>
+              {loading && (
+                <div className="col-span-full py-8 text-center text-muted-foreground/50 font-mono text-xs">
+                  Loading cards...
+                </div>
               )}
-              {cards.map(card => {
+
+              {!loading && filteredCards.length === 0 && (
+                <div className="col-span-full py-8 text-center text-muted-foreground/50 font-mono text-xs">
+                  No cards found
+                </div>
+              )}
+              
+              {filteredCards.map(card => {
                 const style = TYPE_STYLES[card.type];
                 const Icon = style.icon;
                 const cardColor = getCardColor(card);
                 const isLegend = card.type === 'legend';
-                const selected = isLegend ? isLegendSelected(card.id) : getMainCount(card.id);
-                const count = isLegend ? (isLegendSelected(card.id) ? 1 : 0) : getMainCount(card.id);
-                const maxed = isLegend ? (isLegendSelected(card.id) || legendCount >= REQUIRED_LEGENDS) : count >= MAX_COPIES;
+                const selected = isLegend ? isLegendSelected(card.deckKey) : getMainCount(card.deckKey);
+                const count = isLegend ? (isLegendSelected(card.deckKey) ? 1 : 0) : getMainCount(card.deckKey);
+                const maxed = isLegend ? (isLegendSelected(card.deckKey) || legendCount >= REQUIRED_LEGENDS) : count >= MAX_COPIES;
 
                 return (
                   <div
-                    key={card.id}
+                    key={card.deckKey}
                     className="relative group flex flex-col"
                     onMouseEnter={() => setHoveredCard(card)}
                     onMouseLeave={() => setHoveredCard(null)}
@@ -321,9 +356,9 @@ export default function DeckBuilder() {
                   >
                     {/* Card visual */}
                     <div
-                      onClick={() => isLegend ? toggleLegend(card.id) : addCard(card.id)}
+                      onClick={() => isLegend ? toggleLegend(card.deckKey) : addCard(card.deckKey)}
                       className={cn(
-                        "relative rounded-lg border-2 cursor-pointer transition-all duration-150 overflow-hidden aspect-[2/3] bg-black/40 bg-red-500",
+                        "relative rounded-lg border-2 cursor-pointer transition-all duration-150 overflow-hidden aspect-[2/3] bg-black/40",
                         cardColor.border,
                         selected && `ring-2 ${cardColor.ring}`,
                         !selected && maxed && "opacity-40 cursor-not-allowed",
@@ -331,20 +366,20 @@ export default function DeckBuilder() {
                       )}
                     >
                       {card.imageUrl && (
-                        <>
-                          <img src={card.imageUrl} alt={card.name} className="absolute inset-0 w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/30" />
-                        </>
+                        <img
+                          src={card.imageUrl}
+                          alt={card.name}
+                          loading="lazy"
+                          decoding="async"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
                       )}
 
                       {/* Type icon */}
                       <div className="absolute top-1 right-1">
                         <Icon className={cn("w-3 h-3 drop-shadow", style.accent)} />
                       </div>
-                      {/* Name */}
-                      <div className="absolute bottom-0 inset-x-0 p-1">
-                        <p className="font-rajdhani font-bold text-[10px] leading-tight text-white text-center drop-shadow line-clamp-2">{card.name}</p>
-                      </div>
+                      
                       {/* Count badge */}
                       {count > 0 && (
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-primary/90 border-2 border-primary flex items-center justify-center">
@@ -356,10 +391,10 @@ export default function DeckBuilder() {
                     {/* Add/Remove buttons */}
                     {!isLegend && (
                       <div className="flex gap-1 mt-1">
-                        <button onClick={() => removeCard(card.id)} className="flex-1 flex items-center justify-center h-5 rounded bg-muted/50 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors">
+                        <button onClick={() => removeCard(card.deckKey)} className="flex-1 flex items-center justify-center h-5 rounded bg-muted/50 hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors">
                           <Minus className="w-3 h-3" />
                         </button>
-                        <button onClick={() => addCard(card.id)} disabled={maxed || mainDeckCount >= MAIN_DECK_SIZE} className="flex-1 flex items-center justify-center h-5 rounded bg-muted/50 hover:bg-primary/20 text-muted-foreground hover:text-primary disabled:opacity-30 transition-colors">
+                        <button onClick={() => addCard(card.deckKey)} disabled={maxed || mainDeckCount >= MAIN_DECK_SIZE} className="flex-1 flex items-center justify-center h-5 rounded bg-muted/50 hover:bg-primary/20 text-muted-foreground hover:text-primary disabled:opacity-30 transition-colors">
                           <Plus className="w-3 h-3" />
                         </button>
                       </div>
@@ -399,11 +434,18 @@ export default function DeckBuilder() {
               <p className="text-[11px] text-amber-400 font-mono uppercase tracking-wider mb-1">Legends</p>
               {legends.length === 0 && <p className="text-[11px] text-muted-foreground/50 font-mono">None selected</p>}
               {legends.map(id => {
-                const card = cards.find(c => c.id === id);
+                const card = cards.find(c => c.deckKey === id);
                 if (!card) return null;
                 return (
                   <div key={id} className="flex items-center gap-1.5 py-0.5 group/item">
-                    {card.imageUrl && <img src={card.imageUrl} alt="" className="w-6 h-8 rounded object-cover flex-shrink-0" />}
+                    {card.imageUrl && 
+                      <img
+                        src={card.imageUrl}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="w-6 h-8 rounded object-cover flex-shrink-0"
+                      />}
                     <span className="text-xs font-mono text-amber-300 flex-1 truncate">{card.name}</span>
                     <button onClick={() => toggleLegend(id)} className="opacity-0 group-hover/item:opacity-100 text-muted-foreground hover:text-destructive transition-all">
                       <Minus className="w-3 h-3" />
@@ -418,12 +460,19 @@ export default function DeckBuilder() {
               <p className="text-[11px] text-cyan-400 font-mono uppercase tracking-wider mb-1">Main Deck</p>
               {mainDeck.length === 0 && <p className="text-[11px] text-muted-foreground/50 font-mono">No cards added</p>}
               {mainDeck.map(({ id, count }) => {
-                const card = cards.find(c => c.id === id);
+                const card = cards.find(c => c.deckKey === id);
                 if (!card) return null;
                 const style = TYPE_STYLES[card.type];
                 return (
                   <div key={id} className="flex items-center gap-1.5 py-0.5 group/item">
-                    {card.imageUrl && <img src={card.imageUrl} alt="" className="w-6 h-8 rounded object-cover flex-shrink-0" />}
+                    {card.imageUrl && 
+                      <img
+                        src={card.imageUrl}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="w-6 h-8 rounded object-cover flex-shrink-0"
+                      />}
                     <span className={cn("text-xs font-mono flex-1 truncate", style.accent)}>{card.name}</span>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button onClick={() => removeCard(id)} className="text-muted-foreground hover:text-destructive transition-colors"><Minus className="w-2.5 h-2.5" /></button>
